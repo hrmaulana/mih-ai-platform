@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { externalLinks } from "../../data/portal";
 import { usePortalAuth } from "./PortalLayout";
@@ -18,12 +18,28 @@ export default function PortalHome() {
   const limitedNews = news.slice(0, 5);
   const [slide, setSlide] = useState(0);
   const linksScrollerRef = useRef<HTMLDivElement>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  /* Auto-advance carousel setiap 5 detik */
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setSlide((prev) => (prev + 1) % limitedNews.length);
+    }, 5000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [limitedNews.length]);
+
+  /* Reset timer saat user klik manual */
   const switchSlide = (index: number) => {
+    /* Reset interval saat user interaksi manual */
+    if (intervalRef.current) clearInterval(intervalRef.current);
     const n = limitedNews.length;
-    if (index >= n) setSlide(0);
-    else if (index < 0) setSlide(n - 1);
-    else setSlide(index);
+    const next = index >= n ? 0 : index < 0 ? n - 1 : index;
+    setSlide(next);
+    intervalRef.current = setInterval(() => {
+      setSlide((prev) => (prev + 1) % limitedNews.length);
+    }, 5000);
   };
 
   const visibleExternalLinks = externalLinks.filter(

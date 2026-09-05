@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { usePortalContent } from "./usePortalContent";
 
@@ -7,6 +8,8 @@ import { usePortalContent } from "./usePortalContent";
  *
  * Rute: `/berita` (list) dan `/berita/:slug` (detail).
  */
+
+/* ===== Berita List ===== */
 export function PortalNews() {
   const { news } = usePortalContent();
   return (
@@ -39,9 +42,13 @@ export function PortalNews() {
   );
 }
 
+/* ===== Berita Detail ===== */
 export function PortalNewsDetail({ slug }: { slug: string }) {
   const { news } = usePortalContent();
   const item = news.find((n) => n.slug === slug);
+
+  /* State lightbox */
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   if (!item) {
     return (
@@ -88,7 +95,14 @@ export function PortalNewsDetail({ slug }: { slug: string }) {
                 <h2 style={{ marginBottom: 20, color: "var(--slate-900)" }}>📸 Galeri Pelaksanaan</h2>
                 <div className="gallery-grid">
                   {item.gallery.map((image, i) => (
-                    <img key={i} src={image} alt={item.title} loading="lazy" />
+                    <img
+                      key={i}
+                      src={image}
+                      alt={`${item.title} - ${i + 1}`}
+                      loading="lazy"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => setLightboxSrc(image)}
+                    />
                   ))}
                 </div>
               </div>
@@ -131,6 +145,25 @@ export function PortalNewsDetail({ slug }: { slug: string }) {
           </div>
         </div>
       </section>
+
+      {/* Lightbox modal */}
+      {lightboxSrc && (
+        <div
+          className="image-modal show"
+          onClick={() => setLightboxSrc(null)}
+          role="presentation"
+        >
+          <span
+            className="image-modal-close"
+            onClick={() => setLightboxSrc(null)}
+            role="button"
+            aria-label="Tutup"
+          >
+            ×
+          </span>
+          <img src={lightboxSrc} alt="Galeri" />
+        </div>
+      )}
     </>
   );
 }
