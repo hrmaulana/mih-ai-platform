@@ -84,17 +84,21 @@ function Topbar() {
 
 /* Sticky white site header with wordmark + nav + user (mirrors template .site-header) */
 function SiteHeader({ user, onLogout }: { user: User; onLogout: () => void }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const closeMobile = () => setMobileOpen(false);
+  const dashboards = externalDashboards;
+
   return (
     <header className="sticky top-0 z-50 bg-white shadow-[0_1px_12px_rgba(15,23,42,0.08)]">
       <div className="container flex min-h-[80px] items-center justify-between gap-6">
-        <Link to="/" className="flex items-center">
-          {/* Header internal: logo 40px (proporsional terhadap header 80px);
-              jangan pakai class .logo portal (56px) yang terlalu besar. */}
+        <Link to="/" className="flex items-center" onClick={closeMobile}>
           <img className="h-10 w-auto" src={portalImages.logoDark} alt="PMP Logo" />
         </Link>
 
+        {/* Desktop nav */}
         <nav className="hidden items-center gap-7 lg:flex">
-          <NavLink to="/playground" className={navClass}>
+          <NavLink to="/playground" className={navClass} onClick={closeMobile}>
             Playground
           </NavLink>
           <div className="group relative">
@@ -102,22 +106,12 @@ function SiteHeader({ user, onLogout }: { user: User; onLogout: () => void }) {
               Dokumen ▾
             </button>
             <div className="invisible absolute left-0 top-full z-50 w-56 rounded-lg border border-slate-200 bg-white py-2 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100">
-              <Link
-                to="/documents"
-                className="block px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-900"
-              >
-                Daftar Dokumen
-              </Link>
-              <Link
-                to="/documents/relasi"
-                className="block px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-900"
-              >
-                Relasi Dokumen
-              </Link>
+              <Link to="/documents" className="block px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-900" onClick={closeMobile}>Daftar Dokumen</Link>
+              <Link to="/documents/relasi" className="block px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-900" onClick={closeMobile}>Relasi Dokumen</Link>
             </div>
           </div>
           {user.is_admin && (
-            <NavLink to="/admin" className={navClass}>
+            <NavLink to="/admin" className={navClass} onClick={closeMobile}>
               Admin
             </NavLink>
           )}
@@ -126,31 +120,36 @@ function SiteHeader({ user, onLogout }: { user: User; onLogout: () => void }) {
               Dashboard ▾
             </button>
             <div className="invisible absolute left-0 top-full z-50 w-56 rounded-lg border border-slate-200 bg-white py-2 opacity-0 shadow-lg transition-all group-hover:visible group-hover:opacity-100">
-              {externalDashboards.map((d) => (
-                <Link
-                  key={d.slug}
-                  to={`/dashboard/${d.slug}`}
-                  className="block px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-900"
-                >
-                  {d.title}
-                </Link>
+              {dashboards.map((d) => (
+                <Link key={d.slug} to={`/dashboard/${d.slug}`} className="block px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-900" onClick={closeMobile}>{d.title}</Link>
               ))}
             </div>
           </div>
         </nav>
 
+        {/* User info + toggle */}
         <div className="flex items-center gap-4">
-          <span className="hidden text-sm font-semibold text-slate-600 sm:block">
-            {user.name}
-          </span>
-          <button
-            onClick={onLogout}
-            className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-extrabold text-slate-800 transition-colors hover:border-blue-900 hover:text-blue-900"
-          >
-            Keluar
+          <span className="hidden text-sm font-semibold text-slate-600 sm:block">{user.name}</span>
+          <button onClick={onLogout} className="hidden sm:inline-flex rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-extrabold text-slate-800 transition-colors hover:border-blue-900 hover:text-blue-900">Keluar</button>
+          <button className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 lg:hidden" onClick={() => setMobileOpen((o) => !o)}>
+            {mobileOpen ? "Tutup" : "Menu"}
           </button>
         </div>
       </div>
+
+      {/* Mobile nav */}
+      {mobileOpen && (
+        <nav className="border-t border-slate-100 bg-white lg:hidden">
+          <Link to="/playground" className="block border-b border-slate-100 px-4 py-3 font-bold text-slate-800" onClick={closeMobile}>Playground</Link>
+          <Link to="/documents" className="block border-b border-slate-100 px-4 py-3 font-bold text-slate-800" onClick={closeMobile}>Daftar Dokumen</Link>
+          <Link to="/documents/relasi" className="block border-b border-slate-100 px-4 py-3 font-bold text-slate-800" onClick={closeMobile}>Relasi Dokumen</Link>
+          {user.is_admin && <Link to="/admin" className="block border-b border-slate-100 px-4 py-3 font-bold text-slate-800" onClick={closeMobile}>Admin</Link>}
+          {dashboards.map((d) => (
+            <Link key={d.slug} to={`/dashboard/${d.slug}`} className="block border-b border-slate-100 px-4 py-3 font-bold text-slate-800" onClick={closeMobile}>{d.title}</Link>
+          ))}
+          <button onClick={() => { closeMobile(); onLogout(); }} className="block w-full px-4 py-3 text-left font-bold text-red-600">Keluar</button>
+        </nav>
+      )}
     </header>
   );
 }

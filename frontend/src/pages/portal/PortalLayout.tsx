@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 import { Outlet } from "react-router-dom";
-import portalCss from "../../portal.css?inline";
+import { usePortalCss } from "./usePortalCss";
 import PortalHeader from "./PortalHeader";
 import PortalFooter from "./PortalFooter";
 import type { User } from "../../api";
@@ -33,10 +33,10 @@ export function usePortalAuth() {
 }
 
 export default function PortalLayout({ user, onLogout }: Partial<PortalAuth>) {
+  usePortalCss();
   return (
     <PortalAuthContext.Provider value={{ user: user ?? null, onLogout: onLogout ?? (() => {}) }}>
       <div>
-        <style dangerouslySetInnerHTML={{ __html: portalCss }} />
         <PortalHeader />
         <main>
           <Outlet />
