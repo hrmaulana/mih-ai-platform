@@ -102,3 +102,15 @@ test("wrong password returns 401", async () => {
   const res = await request(app).post("/api/auth/login").send({ email: "a@b.c", password: "salah" });
   expect(res.status).toBe(401);
 });
+
+test("login rate limit: 429 after max attempts", async () => {
+  const limited = createApp({ loginRateLimit: { max: 3, windowMs: 60_000 } });
+  const doLogin = () =>
+    request(limited).post("/api/auth/login").send({ email: "a@b.c", password: "salah" });
+  expect((await doLogin()).status).toBe(401);
+  expect((await doLogin()).status).toBe(401);
+  expect((await doLogin()).status).toBe(401);
+  const r4 = await doLogin();
+  expect(r4.status).toBe(429);
+  expect(r4.headers["retry-after"]).toBeDefined();
+});

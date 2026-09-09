@@ -7,13 +7,14 @@ import adminRoutes from "./routes/admin";
 import chatRoutes from "./routes/chat";
 import documentsRoutes from "./routes/documents";
 import skillsRoutes from "./routes/skills";
+import type { LoginRateLimitOptions } from "./lib/loginRateLimit";
 
-export function createApp() {
+export function createApp(opts: { loginRateLimit?: LoginRateLimitOptions } = {}) {
   const app = express();
   app.use(express.json({ limit: "1mb" }));
   app.use(loadSession);
   app.use("/api", askRoutes);
-  app.use("/api", authRoutes);
+  app.use("/api", authRoutes(opts.loginRateLimit));
   app.use("/api", contentRoutes);
   app.use("/api", chatRoutes);
   app.use("/api", documentsRoutes);
