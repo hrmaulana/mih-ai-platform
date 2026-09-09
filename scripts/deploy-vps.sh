@@ -2,9 +2,9 @@
 # Deploy MIH ke VPS publik (vps.arthakarya.id). Dipanggil oleh job deploy-vps
 # di workflow Deploy (runner self-hosted label `vps`) atau manual di VPS.
 #
-# Repo persisten di $HOME/mi (bukan checkout per-run). Compose project DIPAKSA
-# "mih" karena stack awal dibuat dari /root/mih — tanpa -p mih, compose akan
-# membuat container/volume baru bernama mi-* dan portal lama tetap berjalan.
+# Repo persisten di $HOME/mih (bukan checkout per-run). Compose project DIPAKSA
+# "mih" karena stack awal dibuat dengan nama mih — tanpa -p mih, compose akan
+# membuat container/volume baru dan portal lama tetap berjalan.
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
