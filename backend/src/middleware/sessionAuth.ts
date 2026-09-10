@@ -20,13 +20,13 @@ export function loadSession(req: Request, _res: Response, next: NextFunction) {
 export function setSession(req: Request, res: Response, payload: Record<string, unknown>) {
   res.setHeader(
     "Set-Cookie",
-    `${SESSION_COOKIE}=${encodeSession(payload)}; HttpOnly; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`
+    `${SESSION_COOKIE}=${encodeSession(payload)}; HttpOnly; Secure; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`
   );
   req.session = payload;
 }
 
 export function clearSession(req: Request, res: Response) {
-  res.setHeader("Set-Cookie", `${SESSION_COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`);
+  res.setHeader("Set-Cookie", `${SESSION_COOKIE}=; HttpOnly; Secure; Path=/; Max-Age=0; SameSite=Lax`);
   req.session = {};
 }
 
