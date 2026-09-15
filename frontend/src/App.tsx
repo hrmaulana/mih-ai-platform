@@ -289,8 +289,8 @@ export default function App() {
           <Route path="/profil/unit/:slug" element={<UnitRoute />} />
           <Route path="/profil/pimpinan/:slug" element={<LeaderRoute />} />
           <Route path="/layanan/:slug" element={<ServiceRoute />} />
+          <Route path="/dashboard/early-warning" element={<EarlyWarning />} />
           <Route path="/dashboard/:slug" element={<DashboardRoute />} />
-          <Route path="/portal/early-warning" element={<EarlyWarning />} />
         </Route>
         <Route path="/login" element={<Login onLogin={setUser} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -315,8 +315,8 @@ export default function App() {
         <Route path="/profil/unit/:slug" element={<UnitRoute />} />
         <Route path="/profil/pimpinan/:slug" element={<LeaderRoute />} />
         <Route path="/layanan/:slug" element={<ServiceRoute />} />
+        <Route path="/dashboard/early-warning" element={<EarlyWarning />} />
         <Route path="/dashboard/:slug" element={<DashboardRoute />} />
-        <Route path="/portal/early-warning" element={<EarlyWarning />} />
       </Route>
 
       {/* Aplikasi internal (dari header landing via "Agen AI") */}

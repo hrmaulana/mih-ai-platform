@@ -100,7 +100,7 @@ export default function EarlyWarningWidget() {
           Early Warning
         </h3>
         <Link
-          to="/portal/early-warning"
+          to="/dashboard/early-warning"
           className="text-sm font-semibold text-blue-700 hover:text-blue-900"
         >
           Lihat Detail &rarr;
