@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { externalLinks } from "../../data/portal";
 import { usePortalAuth } from "./PortalLayout";
 import { usePortalContent } from "./usePortalContent";
+import EarlyWarningWidget from "../../components/portal/EarlyWarningWidget";
 
 /*
  * Beranda publik — reproduksi `renderHomePage()` dari PMP Portal.html.
@@ -311,6 +312,15 @@ export default function PortalHome() {
               />
             </div>
           </div>
+        </div>
+      </section>
+      )}
+
+      {/* ===== Early Warning Widget ===== */}
+      {user && (
+      <section className="section" style={{ background: "#f8fafc", paddingTop: 20, paddingBottom: 40 }}>
+        <div className="container">
+          <EarlyWarningWidget />
         </div>
       </section>
       )}

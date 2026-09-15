@@ -715,6 +715,11 @@ export const portalMenus: PortalMenuItem[] = [
     ],
   },
   {
+    name: "Early Warning",
+    path: "/portal/early-warning",
+    status: "private",
+  },
+  {
     name: "Layanan",
     status: "public",
     children: services.map((s) => ({ name: s.name, path: "/layanan/" + s.slug })),

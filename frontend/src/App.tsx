@@ -26,6 +26,7 @@ import {
 } from "./pages/portal/PortalPublication";
 import PortalService from "./pages/portal/PortalService";
 import PortalDashboard from "./pages/portal/PortalDashboard";
+import EarlyWarning from "./pages/portal/EarlyWarning";
 import { externalDashboards, portalImages } from "./data/portal";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -289,6 +290,7 @@ export default function App() {
           <Route path="/profil/pimpinan/:slug" element={<LeaderRoute />} />
           <Route path="/layanan/:slug" element={<ServiceRoute />} />
           <Route path="/dashboard/:slug" element={<DashboardRoute />} />
+          <Route path="/portal/early-warning" element={<EarlyWarning />} />
         </Route>
         <Route path="/login" element={<Login onLogin={setUser} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -314,6 +316,7 @@ export default function App() {
         <Route path="/profil/pimpinan/:slug" element={<LeaderRoute />} />
         <Route path="/layanan/:slug" element={<ServiceRoute />} />
         <Route path="/dashboard/:slug" element={<DashboardRoute />} />
+        <Route path="/portal/early-warning" element={<EarlyWarning />} />
       </Route>
 
       {/* Aplikasi internal (dari header landing via "Agen AI") */}
