@@ -58,8 +58,11 @@ const ALERT_LABEL: Record<string, { icon: string; label: string; badge: string }
 }
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "-"
-  return new Date(dateStr).toLocaleDateString("id-ID", {
+  if (!dateStr) return "-";
+  const normalized = dateStr.includes(" ") ? dateStr.replace(" ", "T") : dateStr;
+  const d = new Date(normalized);
+  if (isNaN(d.getTime())) return "-";
+  return d.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric",

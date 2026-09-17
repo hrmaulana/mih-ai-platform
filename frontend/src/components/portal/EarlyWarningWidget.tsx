@@ -36,7 +36,8 @@ const ALERT_BADGE: Record<string, { icon: string; color: string }> = {
 
 function timeAgo(dateStr: string): string {
   const now = Date.now()
-  const d = new Date(dateStr).getTime()
+  const normalized = dateStr.includes(" ") ? dateStr.replace(" ", "T") : dateStr;
+  const d = new Date(normalized).getTime()
   const diff = Math.floor((now - d) / 1000)
   if (diff < 60) return "baru saja"
   if (diff < 3600) return `${Math.floor(diff / 60)} menit lalu`
