@@ -32,3 +32,4 @@ PMP Portal_files/
 
 # Artifak lokal tooling (bukan bagian repo)
 .commandcode/
+*.tar.gz
