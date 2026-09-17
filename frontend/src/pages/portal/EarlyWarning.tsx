@@ -95,8 +95,8 @@ export default function EarlyWarning() {
     try {
       const res = await fetch(`/api/early-warning?${params}`)
       const data = await res.json()
-      setArticles(data.data)
-      setMeta(data.meta)
+      setArticles(data.data ?? [])
+      setMeta(data.meta ?? { total: 0, page: 1, limit: 20, total_pages: 0, summary: { total_alert: 0, danger: 0, warning: 0, info: 0 } })
     } catch {
       // silent
     } finally {
@@ -112,7 +112,7 @@ export default function EarlyWarning() {
   useEffect(() => {
     fetch("/api/early-warning/summary")
       .then((r) => r.json())
-      .then((d) => setSummary(d))
+      .then((d) => setSummary(d ?? { alerts: [], trend: [], stats: { total_hari_ini: 0, danger: 0, warning: 0 } }))
       .catch(() => {})
   }, [])
 
@@ -255,7 +255,7 @@ export default function EarlyWarning() {
                       )}
                       <div className="flex flex-wrap items-center gap-2 text-xs">
                         <span className="font-semibold text-slate-500">
-                          Score: {article.sentimen_score.toFixed(3)}
+                          Score: {Number(article.sentimen_score).toFixed(3)}
                         </span>
                         <span className="text-slate-300">|</span>
                         <span className="text-slate-500">
@@ -340,7 +340,7 @@ export default function EarlyWarning() {
                         background: color,
                         opacity: 0.85,
                       }}
-                      title={`${t.tanggal}: ${t.total} artikel, rata-rata ${t.avg_score.toFixed(3)}`}
+                      title={`${t.tanggal}: ${t.total} artikel, rata-rata ${Number(t.avg_score).toFixed(3)}`}
                     />
                     <span className="mt-1 text-[10px] text-slate-500">
                       {new Date(t.tanggal + "T00:00:00").toLocaleDateString(
@@ -349,7 +349,7 @@ export default function EarlyWarning() {
                       )}
                     </span>
                     <span className="text-[10px] font-semibold text-slate-600">
-                      {t.avg_score.toFixed(2)}
+                      {Number(t.avg_score).toFixed(2)}
                     </span>
                   </div>
                 )

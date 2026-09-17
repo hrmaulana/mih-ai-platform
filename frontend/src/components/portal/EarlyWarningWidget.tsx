@@ -128,7 +128,7 @@ export default function EarlyWarningWidget() {
                 </p>
                 <p className="text-xs text-slate-500">
                   {alert.sumber} &bull; {timeAgo(alert.created_at)} &bull;{" "}
-                  score: {alert.sentimen_score.toFixed(3)}
+                  score: {Number(alert.sentimen_score).toFixed(3)}
                 </p>
               </div>
             </div>
@@ -152,7 +152,7 @@ export default function EarlyWarningWidget() {
                       : "font-semibold text-slate-600"
                 }
               >
-                {avgScore.toFixed(3)}
+                {Number(avgScore).toFixed(3)}
               </span>
             </span>
           </div>
@@ -169,7 +169,7 @@ export default function EarlyWarningWidget() {
                 <div
                   key={t.tanggal}
                   className="flex flex-1 flex-col items-center"
-                  title={`${t.tanggal}: ${t.total} artikel (rata-rata ${t.avg_score.toFixed(3)})`}
+                  title={`${t.tanggal}: ${t.total} artikel (rata-rata ${Number(t.avg_score).toFixed(3)})`}
                 >
                   <div
                     className={`w-full rounded-t ${color}`}
