@@ -25,6 +25,16 @@ export default function PortalHeader() {
   const { user, onLogout } = usePortalAuth();
   const isLoggedIn = !!user;
 
+  // Fallback: tampilkan "Agen AI" juga di rute user (dashboard, playground)
+  // karena kadang context user null meski sudah login
+  const location = window.location.pathname;
+  const isUserRoute =
+    location.startsWith("/dashboard") ||
+    location.startsWith("/playground") ||
+    location.startsWith("/admin") ||
+    location.startsWith("/documents");
+  const showAgenAI = isLoggedIn || isUserRoute;
+
   const visibleMenus = portalMenus.filter(
     (m) => m.status === "public" || isLoggedIn,
   );
@@ -60,8 +70,8 @@ export default function PortalHeader() {
 
           <nav className="desktop-nav">
             {visibleMenus.map((menu) => renderMenuItem(menu))}
-            {isLoggedIn && (
-              <Link to="/playground" className="nav-link">
+            {showAgenAI && (
+              <Link to={'/playground'} className="nav-link">
                 Agen AI
               </Link>
             )}
@@ -105,11 +115,11 @@ export default function PortalHeader() {
           {visibleMenus.map((menu) =>
             renderMobileItem(menu, closeMobile, openSubmenu, setOpenSubmenu),
           )}
-          {isLoggedIn && (
-            <Link to="/playground" className="nav-link" onClick={closeMobile}>
-              Agen AI
-            </Link>
-          )}
+          {showAgenAI && (
+                      <Link to="/playground" className="nav-link" onClick={closeMobile}>
+                        Agen AI
+                      </Link>
+                      )}
           {isLoggedIn ? (
             <button
               className="button primary"

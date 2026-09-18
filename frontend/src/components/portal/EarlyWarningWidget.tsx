@@ -35,6 +35,7 @@ const ALERT_BADGE: Record<string, { icon: string; color: string }> = {
 }
 
 function timeAgo(dateStr: string): string {
+if (!dateStr) return "-"
   const now = Date.now()
   const normalized = dateStr.includes(" ") ? dateStr.replace(" ", "T") : dateStr;
   const d = new Date(normalized).getTime()

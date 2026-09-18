@@ -58,7 +58,7 @@ const ALERT_LABEL: Record<string, { icon: string; label: string; badge: string }
 }
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "-";
+  if (!dateStr || !dateStr.trim()) return "-";
   const normalized = dateStr.includes(" ") ? dateStr.replace(" ", "T") : dateStr;
   const d = new Date(normalized);
   if (isNaN(d.getTime())) return "-";
@@ -378,3 +378,4 @@ export default function EarlyWarning() {
     </div>
   )
 }
+// cache bust: Thu Sep 17 14:19:42 UTC 2026
