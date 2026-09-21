@@ -302,7 +302,7 @@ function WeeklyImpactChart({ data }: { data: TrenItem[] }) {
                 )}
               </div>
               <span className="text-[10px] text-slate-500">
-                {new Date(t.tanggal + "T00:00:00").toLocaleDateString("id-ID", {
+                {new Date(t.tanggal.includes("T") ? t.tanggal : t.tanggal + "T00:00:00").toLocaleDateString("id-ID", {
                   weekday: "short",
                   day: "numeric",
                 })}
@@ -947,7 +947,7 @@ export default function EarlyWarning() {
                       title={`${t.tanggal}: ${t.total} artikel, rata-rata ${Number(t.avg_score).toFixed(3)}`}
                     />
                     <span className="mt-1 text-[10px] text-slate-500">
-                      {new Date(t.tanggal + "T00:00:00").toLocaleDateString(
+                      {new Date(t.tanggal.includes("T") ? t.tanggal : t.tanggal + "T00:00:00").toLocaleDateString(
                         "id-ID",
                         { weekday: "short", day: "numeric" },
                       )}
