@@ -3,6 +3,7 @@ import { pool } from "../db"
 import { requireLogin, requireAdmin } from "../middleware/sessionAuth"
 import { calculateLexiconScore } from "../lib/lexicon"
 import { analyzeSentimentLLM } from "../lib/llm-sentiment"
+import { detectClusters, relevanceFloor } from "../lib/highlight"
 
 const router = Router()
 
@@ -108,10 +109,23 @@ router.get("/early-warning/summary", requireLogin, async (_req, res) => {
      FROM early_warnings`,
   )
 
+  // PKPN cluster stats (top 5 trending)
+  const clusterStats = await pool.query(
+    `SELECT
+       unnest(pkpn_clusters) AS klaster,
+       COUNT(*) AS jumlah
+     FROM early_warnings
+     WHERE pkpn_score > 0 AND array_length(pkpn_clusters, 1) > 0
+     GROUP BY klaster
+     ORDER BY jumlah DESC
+     LIMIT 5`,
+  )
+
   res.json({
     alerts: alerts.rows,
     trend: trend.rows,
     stats: stats.rows[0],
+    pkpn_cluster: clusterStats.rows,
   })
 })
 
@@ -202,12 +216,18 @@ router.post("/early-warning/crawl", requireAdmin, async (req, res) => {
                     : item.judul
                 }
 
+                // === PKPN detection ===
+                const pkpnText = `${item.judul}\n${item.konten ?? ""}`
+                const pkpnDetect = detectClusters(pkpnText)
+                const pkpnScore = relevanceFloor(pkpnText)
+
                 await pool.query(
                   `INSERT INTO early_warnings
                      (judul, sumber, url, konten, published_at, keyword,
                       sentimen, sentimen_score, confidence, ringkasan,
-                      lex_score, llm_score, is_alert, alert_level)
-                   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+                      lex_score, llm_score, is_alert, alert_level,
+                      pkpn_clusters, pkpn_score, pkpn_literal)
+                   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
                    ON CONFLICT (url) DO NOTHING`,
                   [
                     item.judul,
@@ -224,6 +244,9 @@ router.post("/early-warning/crawl", requireAdmin, async (req, res) => {
                     llmScore,
                     isAlert,
                     alertResult,
+                    pkpnDetect.klaster,
+                    pkpnScore,
+                    pkpnDetect.literalPKPN,
                   ],
                 )
                 newArticles++

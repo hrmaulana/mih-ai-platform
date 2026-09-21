@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
+import { CLUSTERS, CLUSTER_ICONS } from "../../lib/highlight"
 
 interface AlertItem {
   id: number
@@ -22,10 +23,16 @@ interface Stats {
   warning: number
 }
 
+interface ClusterItem {
+  klaster: number
+  jumlah: number
+}
+
 interface SummaryData {
   alerts: AlertItem[]
   trend: TrendItem[]
   stats: Stats
+  pkpn_cluster?: ClusterItem[]
 }
 
 const ALERT_BADGE: Record<string, { icon: string; color: string }> = {
@@ -57,7 +64,7 @@ export default function EarlyWarningWidget() {
       fetch("/api/early-warning/summary")
         .then((r) => r.json())
         .then((d) => {
-          if (mounted) setData(d?.alerts ? d : { alerts: [], trend: [], stats: { total_hari_ini: 0, danger: 0, warning: 0 } })
+          if (mounted) setData(d?.alerts ? d : { alerts: [], trend: [], stats: { total_hari_ini: 0, danger: 0, warning: 0 }, pkpn_cluster: [] })
         })
         .catch(() => {})
         .finally(() => {
@@ -108,6 +115,23 @@ export default function EarlyWarningWidget() {
           Lihat Detail &rarr;
         </Link>
       </div>
+
+      {/* PKPN Trending */}
+      {data.pkpn_cluster && data.pkpn_cluster.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          <span className="text-sm">🔥</span>
+          <span className="text-xs font-semibold text-slate-600">Trending:</span>
+          {data.pkpn_cluster.slice(0, 3).map((c) => (
+            <span
+              key={c.klaster}
+              className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700"
+            >
+              {CLUSTER_ICONS[c.klaster] ?? ""}{" "}
+              {CLUSTERS[c.klaster]?.split(" ")[0] ?? `K${c.klaster}`}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Alert cards */}
       <div className="space-y-2">

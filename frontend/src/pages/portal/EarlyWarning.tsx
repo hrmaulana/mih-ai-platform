@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react"
+import { CLUSTERS, CLUSTER_ICONS, segment } from "../../lib/highlight"
 
 interface Article {
   id: number
@@ -13,6 +14,9 @@ interface Article {
   alert_level: string
   is_alert: boolean
   created_at: string
+  pkpn_clusters: number[] | null
+  pkpn_score: number | null
+  pkpn_literal: boolean | null
 }
 
 interface Meta {
@@ -32,6 +36,7 @@ interface SummaryData {
   alerts: { judul: string; alert_level: string; sumber: string; sentimen_score: number }[]
   trend: { tanggal: string; avg_score: number; total: number }[]
   stats: { total_hari_ini: number; danger: number; warning: number }
+  pkpn_cluster?: { klaster: number; jumlah: number }[]
 }
 
 const SUMBER_OPTIONS = [
@@ -51,22 +56,58 @@ const SENTIMEN_OPTIONS = [
   { value: "netral", label: "Netral" },
 ]
 
+const KLASTER_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "Semua Klaster" },
+  ...Object.entries(CLUSTERS).map(([k, v]) => ({
+    value: k,
+    label: `${CLUSTER_ICONS[Number(k)] ?? ""} ${v}`,
+  })),
+]
+
 const ALERT_LABEL: Record<string, { icon: string; label: string; badge: string }> = {
   danger: { icon: "\u{1F534}", label: "Danger", badge: "bg-red-100 text-red-800 border-red-300" },
   warning: { icon: "\u{1F7E1}", label: "Warning", badge: "bg-yellow-100 text-yellow-800 border-yellow-300" },
   info: { icon: "\u2139\uFE0F", label: "Info", badge: "bg-blue-100 text-blue-800 border-blue-300" },
 }
 
+const PKPN_SCORE_CLASS: Record<number, string> = {
+  0: "bg-slate-100 text-slate-500 border-slate-200",
+  1: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  2: "bg-orange-50 text-orange-700 border-orange-200",
+  3: "bg-green-100 text-green-800 border-green-300",
+}
+
 function formatDate(dateStr: string | null): string {
-  if (!dateStr || !dateStr.trim()) return "-";
-  const normalized = dateStr.includes(" ") ? dateStr.replace(" ", "T") : dateStr;
-  const d = new Date(normalized);
-  if (isNaN(d.getTime())) return "-";
+  if (!dateStr || !dateStr.trim()) return "-"
+  const normalized = dateStr.includes(" ") ? dateStr.replace(" ", "T") : dateStr
+  const d = new Date(normalized)
+  if (isNaN(d.getTime())) return "-"
   return d.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric",
   })
+}
+
+/** Render teks dengan highlight PKPN */
+function HighlightText({ text }: { text: string }) {
+  const segs = segment(text)
+  return (
+    <>
+      {segs.map((s, i) =>
+        s.match ? (
+          <mark
+            key={i}
+            className={`hl hl-${s.match.cat}${s.match.weak ? " hl-weak" : ""}`}
+          >
+            {s.text}
+          </mark>
+        ) : (
+          s.text
+        ),
+      )}
+    </>
+  )
 }
 
 export default function EarlyWarning() {
@@ -78,6 +119,7 @@ export default function EarlyWarning() {
   const [page, setPage] = useState(1)
   const [sumber, setSumber] = useState("")
   const [sentimen, setSentimen] = useState("")
+  const [klaster, setKlaster] = useState("")
   const [q, setQ] = useState("")
 
   // Expand
@@ -115,14 +157,19 @@ export default function EarlyWarning() {
   useEffect(() => {
     fetch("/api/early-warning/summary")
       .then((r) => r.json())
-      .then((d) => setSummary(d ?? { alerts: [], trend: [], stats: { total_hari_ini: 0, danger: 0, warning: 0 } }))
+      .then((d) => setSummary(d ?? { alerts: [], trend: [], stats: { total_hari_ini: 0, danger: 0, warning: 0 }, pkpn_cluster: [] }))
       .catch(() => {})
   }, [])
 
   // Reset page when filters change
   useEffect(() => {
     setPage(1)
-  }, [sumber, sentimen, q])
+  }, [sumber, sentimen, klaster, q])
+
+  // Client-side cluster filter
+  const filteredArticles = klaster
+    ? articles.filter((a) => a.pkpn_clusters?.includes(Number(klaster)))
+    : articles
 
   const toggleExpand = (id: number) => {
     setExpanded((prev) => {
@@ -191,6 +238,17 @@ export default function EarlyWarning() {
               </option>
             ))}
           </select>
+          <select
+            value={klaster}
+            onChange={(e) => setKlaster(e.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+          >
+            {KLASTER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
           <input
             type="text"
             value={q}
@@ -199,6 +257,25 @@ export default function EarlyWarning() {
             className="min-w-[200px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400"
           />
         </div>
+
+        {/* PKPN Cluster Trending */}
+        {summary?.pkpn_cluster && summary.pkpn_cluster.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500">
+              🔥 Trending Klaster:
+            </span>
+            {summary.pkpn_cluster.map((c) => (
+              <span
+                key={c.klaster}
+                className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-700"
+              >
+                {CLUSTER_ICONS[c.klaster] ?? ""}{" "}
+                {CLUSTERS[c.klaster] ?? `Klaster ${c.klaster}`}
+                <span className="ml-0.5 text-green-500">({c.jumlah})</span>
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Article list */}
         {loading ? (
@@ -213,16 +290,18 @@ export default function EarlyWarning() {
               </div>
             ))}
           </div>
-        ) : articles.length === 0 ? (
+        ) : filteredArticles.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
             <p className="text-slate-500">Tidak ada artikel ditemukan</p>
           </div>
         ) : (
           <div className="mb-6 space-y-3">
-            {articles.map((article) => {
+            {filteredArticles.map((article) => {
               const badge =
                 ALERT_LABEL[article.alert_level] ?? ALERT_LABEL.info
               const isOpen = expanded.has(article.id)
+              const pkpnClusters: number[] = article.pkpn_clusters ?? []
+              const pkpnScore: number = article.pkpn_score ?? 0
 
               return (
                 <div
@@ -232,11 +311,32 @@ export default function EarlyWarning() {
                 >
                   <div className="p-4">
                     <div className="mb-2 flex items-center gap-2">
+                      {/* Alert badge */}
                       <span
                         className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${badge.badge}`}
                       >
                         {badge.icon} {badge.label}
                       </span>
+
+                      {/* PKPN cluster badges */}
+                      {pkpnClusters.length > 0 &&
+                        pkpnClusters.map((c) => (
+                          <span
+                            key={c}
+                            className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700"
+                          >
+                            {CLUSTER_ICONS[c] ?? ""}{" "}
+                            {CLUSTERS[c]?.split(" ")[0] ?? `K${c}`}
+                          </span>
+                        ))}
+
+                      {/* PKPN score badge */}
+                      {pkpnScore > 0 && (
+                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-bold ${PKPN_SCORE_CLASS[pkpnScore] ?? PKPN_SCORE_CLASS[0]}`}>
+                          PKPN: {pkpnScore}
+                        </span>
+                      )}
+
                       <span className="text-xs font-semibold uppercase text-slate-400">
                         {SUMBER_OPTIONS.find((o) => o.value === article.sumber)
                           ?.label ?? article.sumber}
@@ -253,7 +353,7 @@ export default function EarlyWarning() {
                     <div className="border-t border-slate-100 px-4 pb-4 pt-3">
                       {article.ringkasan && (
                         <p className="mb-2 text-sm leading-relaxed text-slate-700">
-                          {article.ringkasan}
+                          <HighlightText text={article.ringkasan} />
                         </p>
                       )}
                       <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -268,6 +368,29 @@ export default function EarlyWarning() {
                         <span className="text-slate-500">
                           Sentimen: {article.sentimen}
                         </span>
+                        {pkpnScore > 0 && (
+                          <>
+                            <span className="text-slate-300">|</span>
+                            <span className="font-semibold text-emerald-600">
+                              PKPN Score: {pkpnScore}
+                              {article.pkpn_literal && " (literal)"}
+                            </span>
+                          </>
+                        )}
+                        {pkpnClusters.length > 0 && (
+                          <>
+                            <span className="text-slate-300">|</span>
+                            <span className="text-slate-500">
+                              Klaster:{" "}
+                              {pkpnClusters
+                                .map(
+                                  (c) =>
+                                    `${CLUSTER_ICONS[c] ?? ""} ${CLUSTERS[c]?.split(" ")[0] ?? `K${c}`}`,
+                                )
+                                .join(", ")}
+                            </span>
+                          </>
+                        )}
                         {article.url && (
                           <>
                             <span className="text-slate-300">|</span>
@@ -378,4 +501,3 @@ export default function EarlyWarning() {
     </div>
   )
 }
-// cache bust: Thu Sep 17 14:19:42 UTC 2026
