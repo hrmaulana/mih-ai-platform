@@ -125,6 +125,8 @@ router.post("/early-warning/crawl", requireAdmin, async (req, res) => {
     { sumber: "tempo-bisnis", url: "https://rss.tempo.co/bisnis" },
     { sumber: "tempo-nasional", url: "https://rss.tempo.co/nasional" },
     { sumber: "liputan6", url: "https://feed.liputan6.com/rss/bisnis" },
+    { sumber: "economist", url: "https://www.economist.com/business/rss.xml" },
+    { sumber: "politico", url: "https://www.politico.com/rss/politicopicks.xml" },
   ]
 
   let newArticles = 0

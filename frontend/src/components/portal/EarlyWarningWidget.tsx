@@ -57,7 +57,7 @@ export default function EarlyWarningWidget() {
       fetch("/api/early-warning/summary")
         .then((r) => r.json())
         .then((d) => {
-          if (mounted) setData(d)
+          if (mounted) setData(d?.alerts ? d : { alerts: [], trend: [], stats: { total_hari_ini: 0, danger: 0, warning: 0 } })
         })
         .catch(() => {})
         .finally(() => {
