@@ -27,7 +27,6 @@ import {
 import PortalService from "./pages/portal/PortalService";
 import PortalDashboard from "./pages/portal/PortalDashboard";
 import EarlyWarning from "./pages/portal/EarlyWarning";
-import PantauBeritaPKPN from "./pages/portal/PantauBeritaPKPN";
 import { externalDashboards, portalImages } from "./data/portal";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -291,7 +290,6 @@ export default function App() {
           <Route path="/profil/pimpinan/:slug" element={<LeaderRoute />} />
           <Route path="/layanan/:slug" element={<ServiceRoute />} />
           <Route path="/dashboard/early-warning" element={<EarlyWarning />} />
-          <Route path="/dashboard/pantau-berita-pkpn" element={<PantauBeritaPKPN />} />
           <Route path="/dashboard/:slug" element={<DashboardRoute />} />
         </Route>
         <Route path="/login" element={<Login onLogin={setUser} />} />
@@ -318,7 +316,6 @@ export default function App() {
         <Route path="/profil/pimpinan/:slug" element={<LeaderRoute />} />
         <Route path="/layanan/:slug" element={<ServiceRoute />} />
         <Route path="/dashboard/early-warning" element={<EarlyWarning />} />
-        <Route path="/dashboard/pantau-berita-pkpn" element={<PantauBeritaPKPN />} />
         <Route path="/dashboard/:slug" element={<DashboardRoute />} />
       </Route>
 
