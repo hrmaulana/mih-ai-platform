@@ -1,7 +1,18 @@
 /**
- * highlight.ts — Frontend copy untuk highlight PKPN di React
- * Hanya berisi konstanta + fungsi segment yang dipakai di komponen.
+ * highlight.js — Modul highlight keyword PKPN & Makropembangunan untuk dashboard berita.
+ * Port ke TypeScript untuk frontend React.
+ *
+ * - Tanpa dependensi
+ * - Highlight lewat kode, bukan LLM
+ * - Keyword "weak" tetap di-highlight tapi tidak menaikkan skor relevansi
+ *
+ * Cara pakai (React):
+ *   import { segment } from "./highlight";
+ *   segment(text).map((s, i) => s.match
+ *     ? <mark key={i} className={`hl hl-${s.match.cat}`}>{s.text}</mark>
+ *     : s.text);
  */
+
 export const CLUSTERS: Record<number, string> = {
   1: "Kedaulatan Pangan",
   2: "Kemandirian Energi dan Air",
@@ -11,29 +22,24 @@ export const CLUSTERS: Record<number, string> = {
   6: "Infrastruktur, Perumahan dan Ketahanan Bencana",
   7: "Ekonomi Kerakyatan dan Desa",
   8: "Penurunan Kemiskinan",
-}
+};
 
 export const CLUSTER_ICONS: Record<number, string> = {
-  1: "🌾",
-  2: "⚡",
-  3: "🎓",
-  4: "🏥",
-  5: "🏭",
-  6: "🏗️",
-  7: "🏘️",
-  8: "📉",
-}
+  1: "🌾", 2: "⚡", 3: "🎓", 4: "🏥", 5: "🏭", 6: "🏗️", 7: "🏘️", 8: "📉",
+};
 
 interface KeywordEntry {
-  cat: string
-  cluster: number[]
-  terms: string[]
-  weak: boolean
+  cat: string;
+  cluster: number[];
+  terms: string[];
+  weak: boolean;
 }
 
-const K = (cat: string, cluster: number[], terms: string[], weak = false): KeywordEntry => ({ cat, cluster, terms, weak })
+const K = (cat: string, cluster: number[], terms: string[], weak = false): KeywordEntry => ({
+  cat, cluster, terms, weak,
+});
 
-const KEYWORDS: KeywordEntry[] = [
+export const KEYWORDS: KeywordEntry[] = [
   K("pkpn", [], ["PKPN", "Program Kerja Prioritas Nasional"]),
   K("pkpn", [1], ["Kampung Nelayan Merah Putih", "KNMP"]),
   K("pkpn", [1], ["Kapal Ikan Modern", "modernisasi kapal perikanan"]),
@@ -74,76 +80,127 @@ const KEYWORDS: KeywordEntry[] = [
   K("makro", [], ["APBN", "defisit", "neraca perdagangan", "neraca pembayaran", "surplus perdagangan"]),
   K("makro", [], ["kemiskinan", "pengangguran", "ketimpangan", "daya beli", "rasio Gini"]),
   K("makro", [], ["Danantara", "Patriot Bonds", "industrialisasi", "produktivitas"]),
-]
+];
 
-interface MatchResult {
-  start: number
-  end: number
-  text: string
-  cat: string
-  cluster: number[]
-  weak: boolean
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+const flex = (term: string) => term.trim().split(/\s+/).map(esc).join("\\s+");
+
+interface Matcher {
+  source: string;
+  lookup: Map<string, KeywordEntry>;
 }
 
-interface SegmentResult {
-  text: string
-  match?: MatchResult
-}
-
-const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim()
-const flex = (term: string) => term.trim().split(/\s+/).map(esc).join("\\s+")
-
-function buildMatcher() {
-  const lookup = new Map<string, KeywordEntry>()
-  const terms: string[] = []
-  for (const e of KEYWORDS) {
+function buildMatcher(entries = KEYWORDS): Matcher {
+  const lookup = new Map<string, KeywordEntry>();
+  const terms: string[] = [];
+  for (const e of entries) {
     for (const t of e.terms) {
-      lookup.set(norm(t), e)
-      terms.push(t)
+      lookup.set(norm(t), e);
+      terms.push(t);
     }
   }
-  terms.sort((a, b) => b.length - a.length)
-  const alt = terms.map(flex).join("|")
-  const source = `(?<![\\p{L}\\p{N}])(?:${alt})(?![\\p{L}\\p{N}])`
-  return { source, lookup }
+  terms.sort((a, b) => b.length - a.length);
+  const alt = terms.map(flex).join("|");
+  const source = `(?<![\\p{L}\\p{N}])(?:${alt})(?![\\p{L}\\p{N}])`;
+  return { source, lookup };
 }
 
-let cachedMatcher: { source: string; lookup: Map<string, KeywordEntry> } | null = null
+let _matcher: Matcher | null = null;
 function getMatcher() {
-  if (!cachedMatcher) cachedMatcher = buildMatcher()
-  return cachedMatcher
+  if (!_matcher) _matcher = buildMatcher();
+  return _matcher;
 }
 
+export interface MatchResult {
+  start: number; end: number; text: string;
+  cat: string; cluster: number[]; weak: boolean;
+}
+
+/** Cari semua keyword PKPN/makro di teks */
 export function findMatches(text: string): MatchResult[] {
-  if (!text) return []
-  const matcher = getMatcher()
-  const re = new RegExp(matcher.source, "giu")
-  const out: MatchResult[] = []
-  let m: RegExpExecArray | null
+  if (!text) return [];
+  const matcher = getMatcher();
+  const re = new RegExp(matcher.source, "giu");
+  const out: MatchResult[] = [];
+  let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
-    const e = matcher.lookup.get(norm(m[0]))
-    if (!e) continue
-    out.push({
-      start: m.index,
-      end: m.index + m[0].length,
-      text: m[0],
-      cat: e.cat,
-      cluster: e.cluster,
-      weak: e.weak,
-    })
+    const e = matcher.lookup.get(norm(m[0]));
+    if (!e) continue;
+    out.push({ start: m.index, end: m.index + m[0].length, text: m[0], cat: e.cat, cluster: e.cluster, weak: e.weak });
   }
-  return out
+  return out;
 }
 
+export interface SegmentResult { text: string; match?: MatchResult }
+
+/** Pecah teks jadi segmen highlight — aman buat React */
 export function segment(text: string): SegmentResult[] {
-  const out: SegmentResult[] = []
-  let pos = 0
+  const out: SegmentResult[] = [];
+  let pos = 0;
   for (const m of findMatches(text)) {
-    if (m.start > pos) out.push({ text: text.slice(pos, m.start) })
-    out.push({ text: m.text, match: m })
-    pos = m.end
+    if (m.start > pos) out.push({ text: text.slice(pos, m.start) });
+    out.push({ text: m.text, match: m });
+    pos = m.end;
   }
-  if (pos < text.length) out.push({ text: text.slice(pos) })
-  return out
+  if (pos < text.length) out.push({ text: text.slice(pos) });
+  return out;
+}
+
+const escHTML = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/** HTML dengan <mark> — aman XSS */
+export function toHTML(text: string): string {
+  return segment(text)
+    .map((s) => {
+      if (!s.match) return escHTML(s.text);
+      const cls = `hl hl-${s.match.cat}${s.match.weak ? " hl-weak" : ""}`;
+      const k = s.match.cluster.length ? ` data-klaster="${s.match.cluster.join(",")}"` : "";
+      return `<mark class="${cls}"${k}>${escHTML(s.text)}</mark>`;
+    })
+    .join("");
+}
+
+export interface ClusterResult {
+  klaster: number[];
+  hits: Record<number, number>;
+  strong: number;
+  weak: number;
+  literalPKPN: boolean;
+}
+
+/** Deteksi klaster PKPN dari teks */
+export function detectClusters(text: string): ClusterResult {
+  const hits: Record<number, number> = {};
+  let strong = 0, weak = 0, literalPKPN = false;
+  for (const m of findMatches(text)) {
+    if (m.cat !== "pkpn") continue;
+    if (m.weak) { weak++; continue; }
+    strong++;
+    if (/^(pkpn|program\s+kerja\s+prioritas\s+nasional)$/i.test(m.text)) literalPKPN = true;
+    for (const c of m.cluster) hits[c] = (hits[c] || 0) + 1;
+  }
+  const klaster = Object.keys(hits).map(Number).sort((a, b) => (hits[b] || 0) - (hits[a] || 0) || a - b);
+  return { klaster, hits, strong, weak, literalPKPN };
+}
+
+/** Skor relevansi minimum (0-3) */
+export function relevanceFloor(text: string): number {
+  const d = detectClusters(text);
+  if (d.literalPKPN) return 3;
+  if (d.strong > 0) return 2;
+  const macro = findMatches(text).some((m) => m.cat === "makro" && !m.weak);
+  return macro ? 1 : 0;
+}
+
+/** Gabung LLM + lantai kode */
+export function applyFloor(llmRelevansi: number | null, text: string): number {
+  return Math.max(llmRelevansi ?? 0, relevanceFloor(text));
+}
+
+/** Validasi keyword dari LLM — anti-halusinasi */
+export function validateLLMKeywords(text: string, llmKeywords: { kata: string; kategori?: string }[] = []): { kata: string; kategori?: string }[] {
+  const hay = norm(text);
+  return llmKeywords.filter((k) => k && k.kata && hay.includes(norm(k.kata)));
 }
