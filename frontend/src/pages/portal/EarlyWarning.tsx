@@ -250,7 +250,7 @@ function ClusterRail({ data, onSelect }: { data: KlasterRingkasan[]; onSelect?: 
                     style={{ width: `${(c.rata_relevansi / 3) * 100}%` }}
                   />
                 </div>
-                <span className="font-semibold">{c.rata_relevansi.toFixed(1)}</span>
+                <span className="font-semibold">{Number(c.rata_relevansi).toFixed(1)}</span>
               </div>
             </div>
           )
@@ -834,7 +834,7 @@ export default function EarlyWarning() {
                           <>
                             <span className="text-slate-300">|</span>
                             <span className="text-slate-500">
-                              Lexicon: {article.lexicon_score.toFixed(3)}
+                              Lexicon: {Number(article.lexicon_score || 0).toFixed(3)}
                             </span>
                           </>
                         )}
