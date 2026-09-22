@@ -30,7 +30,7 @@ services:
     build: ./worker
     env_file: .env
     environment:
-      DATABASE_URL: postgres://mih:mih@db:5432/mih
+      DATABASE_URL: postgres://mih:***@db:5432/mih
       DATA_DIR: /data
       RAW_DIR: /data/raw
     volumes:
@@ -39,6 +39,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; r=urllib.request.urlopen('http://localhost:3200/api/health',timeout=5); assert r.status==200\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
 
   frontend:
     build: ./frontend

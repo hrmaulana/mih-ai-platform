@@ -5,6 +5,8 @@ import subprocess
 import time
 from pathlib import Path
 
+from api import start_api_thread
+
 from chunking import chunk_segments
 from db import (connect, complete_document, ensure_raw_document, get_pending,
                 insert_chunk, mark_outdated_same_filename, set_status,
@@ -215,6 +217,8 @@ def main():
     args = parser.parse_args()
 
     conn = connect()
+    start_api_thread()
+
     if args.cmd == "scan":
         n = scan_dir(conn, args.dir, args.source)
         process_pending(conn)
