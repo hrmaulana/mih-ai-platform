@@ -2,6 +2,8 @@ import { Router } from "express";
 import { pool } from "../db";
 import { verifyPassword } from "../lib/passwords";
 import { setSession, clearSession, requireLogin } from "../middleware/sessionAuth";
+import { signToken } from "../lib/jwt";
+import { config } from "../config";
 import { createLoginRateLimiter, type LoginRateLimitOptions } from "../lib/loginRateLimit";
 
 export default function authRoutes(opts: LoginRateLimitOptions = {}) {
@@ -20,8 +22,10 @@ export default function authRoutes(opts: LoginRateLimitOptions = {}) {
       return res.status(401).json({ error: "email atau password salah" });
     }
     setSession(req, res, { userId: u.id, isAdmin: u.is_admin });
+    const token = signToken(u.id, u.is_admin ? "admin" : "user", config.jwtSecret);
     res.json({
       user: { id: u.id, name: u.name, email: u.email, unit_kerja: u.unit_kerja, is_admin: u.is_admin },
+      token,
     });
   });
 

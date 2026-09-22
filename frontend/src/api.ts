@@ -1,6 +1,10 @@
 export interface User {
   id: number; name: string; email: string; unit_kerja: string; is_admin: boolean;
 }
+export interface LoginResult {
+  user: User;
+  token: string;
+}
 export interface Token {
   id: number; user_id: number; email: string; name: string; scope: string;
   daily_limit: number; expires_at: string | null; revoked_at: string | null;
@@ -63,9 +67,29 @@ export interface ChatEvent {
   data: any;
 }
 
+// ---- JWT token management ----
+let authToken: string | null = localStorage.getItem("mih_token");
+
+export function getToken(): string | null {
+  return authToken;
+}
+
+export function setToken(token: string | null) {
+  authToken = token;
+  if (token) {
+    localStorage.setItem("mih_token", token);
+  } else {
+    localStorage.removeItem("mih_token");
+  }
+}
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> =
     init?.body instanceof FormData ? {} : { "Content-Type": "application/json" };
+  // Add JWT Bearer token if available (alongside cookies for backward compat)
+  if (authToken) {
+    (headers as any)["Authorization"] = `Bearer ${authToken}`;
+  }
   const res = await fetch(path, { credentials: "same-origin", ...init, headers: { ...headers, ...(init?.headers ?? {}) } });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -75,9 +99,15 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  login: (email: string, password: string) =>
-    req<{ user: User }>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
-  logout: () => req<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
+  login: (email: string, password: string) => {
+    const result = req<LoginResult>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+    result.then(r => setToken(r.token)).catch(() => {});
+    return result;
+  },
+  logout: () => {
+    setToken(null);
+    return req<{ ok: boolean }>("/api/auth/logout", { method: "POST" });
+  },
   me: () => req<{ user: User }>("/api/auth/me"),
   ask: (question: string) =>
     req<AskResult>("/api/ask", { method: "POST", body: JSON.stringify({ question }) }),

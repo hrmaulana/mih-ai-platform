@@ -14,6 +14,7 @@ export const config = {
   embeddingModel: process.env.EMBEDDING_MODEL ?? "text-embedding-3-small",
   embeddingDim: Number(process.env.EMBEDDING_DIM ?? 1536),
   sessionSecret,
+  jwtSecret: process.env.JWT_SECRET ?? sessionSecret,
   port: Number(process.env.PORT ?? 3000),
   dataDir: process.env.DATA_DIR ?? "/data",
   vectorK: Number(process.env.VECTOR_K ?? 8),

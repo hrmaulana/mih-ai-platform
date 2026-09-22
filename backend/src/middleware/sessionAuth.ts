@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { decodeSession, encodeSession } from "../lib/session";
+import { verifyToken } from "../lib/jwt";
+import { config } from "../config";
 
 export const SESSION_COOKIE = "mih_session";
 
@@ -12,8 +14,29 @@ function readCookie(req: Request): string | undefined {
   return found ? found.slice(SESSION_COOKIE.length + 1) : undefined;
 }
 
+function readBearerToken(req: Request): string | undefined {
+  const auth = req.headers.authorization ?? "";
+  if (auth.startsWith("Bearer ")) {
+    return auth.slice(7);
+  }
+  return undefined;
+}
+
 export function loadSession(req: Request, _res: Response, next: NextFunction) {
+  // Try cookie session first (backward compatible)
   req.session = decodeSession(readCookie(req)) ?? {};
+
+  // If no cookie session, try Bearer JWT
+  if (!req.session?.userId) {
+    const token = readBearerToken(req);
+    if (token) {
+      const payload = verifyToken(token, config.jwtSecret);
+      if (payload) {
+        req.session = { userId: payload.userId, isAdmin: payload.role === "admin" };
+      }
+    }
+  }
+
   next();
 }
 
