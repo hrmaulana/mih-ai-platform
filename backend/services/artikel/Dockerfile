@@ -1,7 +1,7 @@
 FROM oven/bun:1
 WORKDIR /app
-COPY package.json ./
-RUN bun install
-COPY . .
+COPY node_modules ./node_modules
+COPY package.json tsconfig.json ./
+COPY src/ ./src/
 EXPOSE 3103
 CMD ["bun", "run", "src/index.ts"]
