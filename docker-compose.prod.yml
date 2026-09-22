@@ -72,6 +72,26 @@ services:
       retries: 6
       start_period: 20s
 
+  analisis-service:
+    build: ./backend/services/analisis
+    restart: unless-stopped
+    env_file: .env.prod
+    ports:
+      - "3102:3102"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  artikel-service:
+    build: ./backend/services/artikel
+    restart: unless-stopped
+    env_file: .env.prod
+    ports:
+      - "3103:3103"
+    depends_on:
+      db:
+        condition: service_healthy
+
   # One-shot: buat / perbarui akun admin (idempotent, ON CONFLICT DO UPDATE).
   # Jangan di-up — jalankan sekali setelah stack hidup:
   #   docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm seed
