@@ -51,6 +51,8 @@ services:
   worker:
     build: ./worker
     restart: unless-stopped
+    ports:
+      - "3200:3200"
     env_file: .env.prod
     environment:
       <<: *proxy-env
