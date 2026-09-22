@@ -75,6 +75,8 @@ services:
   analisis-service:
     build: ./backend/services/analisis
     restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://mih:mih@db:5432/mih
     env_file: .env.prod
     ports:
       - "3102:3102"
@@ -85,6 +87,8 @@ services:
   artikel-service:
     build: ./backend/services/artikel
     restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://mih:mih@db:5432/mih
     env_file: .env.prod
     ports:
       - "3103:3103"
