@@ -40,20 +40,117 @@ function Reveal({ children, className = "" }: { children: React.ReactNode; class
   return <div ref={ref} className={`reveal ${className}`}>{children}</div>;
 }
 
-function CountUp({ value, reduced }: { value: number; reduced: boolean }) {
-  const [shown, setShown] = useState(reduced ? value : 0);
+type CountUpProps = {
+  value: number;
+  decimals?: number;
+  prefix?: string;
+  suffix?: string;
+  reduced: boolean;
+  /** Optional stable seed to make the random phase reproducible. */
+  seed?: number;
+};
+
+/** Deterministic pseudo-random generator (LCG). Seed is fixed once per instance,
+ *  so the randomisation sequence is stable and never causes flickering renders. */
+function mulberry32(seed: number) {
+  let s = seed >>> 0;
+  if (s === 0) s = 0x9e3779b9;
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Animated counter: shows a short pseudo-random phase (±350–500 ms) within a
+ * magnitude-scaled plausible range, then eases (cubic, ±700–900 ms) to the exact
+ * target value. Only starts once the number enters the viewport (IntersectionObserver),
+ * and runs a single time — it never re-animates on rerender.
+ *
+ * Accessibility: the animated text is `aria-hidden`; a visually-hidden variant always
+ * carries the *final* value so screen readers simply announce the end result, not every frame.
+ * With `prefers-reduced-motion` the final value renders instantly.
+ */
+function CountUp({ value, decimals = 0, prefix = "", suffix = "", reduced, seed }: CountUpProps) {
+  const ref = useRef<HTMLSpanElement>(null);
+  // Stable per-instance seed. Lazily initialized inside the animation callback so
+  // the impure Math.random call never runs during render (avoids purity lint +
+  // wasteful recomputation). `value`-derived so renders are deterministic, with a
+  // per-instance offset so identical values elsewhere vary slightly.
+  const rand = useRef<number | null>(null);
+  const [shown, setShown] = useState<number>(reduced ? value : 0);
+  const [started, setStarted] = useState(reduced);
+
   useEffect(() => {
-    if (reduced) { setShown(value); return; }
-    let frame = 0; const start = performance.now(); const duration = 900;
-    const tick = (now: number) => {
-      const progress = Math.min((now - start) / duration, 1);
-      setShown(value * (1 - Math.pow(1 - progress, 3)));
-      if (progress < 1) frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [value, reduced]);
-  return <>{format(value % 1 ? shown.toFixed(1) : Math.round(shown))}</>;
+    // Initial state already renders the final value when reduced-motion is on.
+    if (reduced) return;
+    const el = ref.current;
+    if (!el) return;
+
+    let raf = 0;
+    let observer: IntersectionObserver | null = null;
+    let running = false;
+
+    function begin() {
+      if (running) return;
+      running = true;
+      if (rand.current === null) {
+        rand.current = seed ?? (Math.abs(value) * 100003) + Math.floor(Math.random() * 1e6);
+      }
+      const rng = mulberry32(rand.current);
+      const randomDur = 350 + rng() * 150; // 350–500 ms
+      const easeDur = 700 + rng() * 200;   // 700–900 ms
+      const abs = Math.abs(value);
+      const range = Math.max(abs * 0.15, 2); // plausible jitter, min 2 for small numbers
+      const t0 = performance.now();
+      setStarted(true);
+
+      function clamp(v: number) {
+        // Never show absurd or wrong-sign values for positive/negative figures.
+        return value >= 0 ? Math.max(0, v) : Math.min(0, v);
+      }
+
+      function tick(now: number) {
+        const elapsed = now - t0;
+        if (elapsed < randomDur) {
+          const r = rng();
+          const jitter = (r * 2 - 1) * range;
+          setShown(clamp(value + jitter));
+          raf = requestAnimationFrame(tick);
+          return;
+        }
+        const p = Math.min((elapsed - randomDur) / easeDur, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        setShown(p === 1 ? value : value * eased);
+        if (p < 1) raf = requestAnimationFrame(tick);
+      }
+      raf = requestAnimationFrame(tick);
+    }
+
+    observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        begin();
+        observer?.disconnect();
+        observer = null;
+      }
+    }, { threshold: 0.25 });
+    observer.observe(el);
+
+    return () => { observer?.disconnect(); cancelAnimationFrame(raf); };
+  }, [value, reduced, seed]);
+
+  const visible = started ? format(shown.toFixed(decimals)) : format(value.toFixed(decimals));
+  const finalText = `${prefix}${format(value.toFixed(decimals))}${suffix}`;
+
+  return (
+    <span ref={ref} className="renstra-count" aria-hidden={started ? "true" : undefined}>
+      <span aria-hidden="true">{prefix}{visible}{suffix}</span>
+      <span className="sr-only">{finalText}</span>
+    </span>
+  );
 }
 
 function LineChart({ index, reduced }: { index: number; reduced: boolean }) {
@@ -135,14 +232,14 @@ export default function RenstraPmp() {
   const toggleUnit=(i:number)=>setHidden(prev=>{const next=new Set(prev); if(next.has(i)) next.delete(i); else next.add(i); if(next.size===units.length) next.delete(i); return next;});
   return <div className="renstra-page" data-theme={theme}>
     <nav className="renstra-toc" aria-label="Daftar isi"><div className="renstra-wrap toc-inner">{renstraSections.map(([id,label])=><a key={id} href={`#${id}`} className={active===id?"on":""} aria-current={active===id?"location":undefined}>{label}</a>)}<button className="theme-toggle" onClick={()=>setTheme(t=>t==="light"?"dark":"light")} aria-label="Ganti tema" aria-pressed={theme==="dark"}>{theme==="light"?"◐":"☼"}</button></div><div className="progress" style={{width:`${progress}%`}} /></nav>
-    <header className="renstra-hero"><div className="renstra-wrap"><div className="hero-stagger kicker">{renstraMeta.kicker}</div><h1 className="hero-stagger">{renstraMeta.title}</h1><p className="hero-stagger">{renstraMeta.intro}</p><div className="goals hero-stagger">{renstraMeta.goals.map((goal,i)=><div className="goal" key={goal}><b>Tujuan {i+1}</b>{goal}</div>)}</div><div className="facts hero-stagger">{renstraMeta.facts.map(f=>{const match=f.match(/^(\d+(?:[,.]\d+)?)/); const value=match ? Number(match[1].replace(",", ".")) : 0; return <div key={f}><strong>{match ? <CountUp value={value} reduced={reduced}/> : f.split(" ")[0]}</strong>{match ? f.substring(match[0].length) : f.substring(f.indexOf(" ")+1)}</div>;})}</div></div></header>
+    <header className="renstra-hero"><div className="renstra-wrap"><div className="hero-stagger kicker">{renstraMeta.kicker}</div><h1 className="hero-stagger">{renstraMeta.title}</h1><p className="hero-stagger">{renstraMeta.intro}</p><div className="goals hero-stagger">{renstraMeta.goals.map((goal,i)=><div className="goal" key={goal}><b>Tujuan {i+1}</b>{goal}</div>)}</div><div className="facts hero-stagger">{renstraMeta.facts.map(f=>{const m=f.match(/(\d+(?:[,.]\d+)?)/); if(!m||m.index===undefined) return <div key={f}><strong>{f}</strong></div>; const value=Number(m[1].replace(",",".")); const prefix=f.slice(0,m.index); const suffix=f.slice(m.index+m[0].length); const decimals=/[,.]/.test(m[1])?1:0; return <div key={f}><strong><CountUp value={value} decimals={decimals} prefix={prefix} reduced={reduced}/></strong>{suffix}</div>;})}</div></div></header>
     {accordionSections.slice(0,1).map(s=><AccordionSection key={s.id} section={s}/>)}
     {accordionSections.slice(1,4).map(s=><AccordionSection key={s.id} section={s}/>)}
-    <section id="organisasi"><Reveal><div className="renstra-wrap"><h2>Enam unit, satu mandat makro</h2><p className="sub">Berdasarkan Permen PPN/Kepala Bappenas No. 2 Tahun 2025. Pilih unit untuk menyorotnya di grafik pendanaan.</p><div className="units">{units.map((u,i)=><button className="unit" key={u.key} onClick={()=>{toggleUnit(i);document.getElementById("dana")?.scrollIntoView({behavior:reduced?"auto":"smooth"})}}><span className="sw" style={{background:colors[i]}}/><b>{u.name}</b><small>{u.description}</small></button>)}</div><h3>Kebutuhan pegawai belum terpenuhi</h3><p className="sub">Analisis Jabatan dan Analisis Beban Kerja menunjukkan kekurangan {sdmGapTotal} pegawai. Jabatan perencana paling terdampak.</p><div className="sdm">{sdm.map(row=><div className="sdm-row" key={row.label}><span>{row.label}</span><div className="track"><div className="fill" style={{width:`${row.value/96*100}%`}}/></div><b><CountUp value={row.value} reduced={reduced}/></b></div>)}</div><p className="src">Sumber: Tabel 1.5, Renstra file hlm. 29–30 (hlm. dokumen 23–24). Rincian lengkap 39 jenis jabatan fungsional dan 4 jabatan pelaksana tersedia pada tabel berikut.</p><TablesFor ids={["1.4", "1.5", "1.5b"]} /><h3>Rencana pengembangan SDM 2025–2029</h3><ul className="sdm-plan">{sdmPlan.map((item)=><li key={item.title}><b>{item.title}</b><span>{item.detail}</span></li>)}</ul><p className="src">Sumber: Renstra file hlm. 32–36 (hlm. dokumen 26–30), termasuk Gambar 1.8 Pipeline Pengembangan Sumber Daya Manusia.</p></div></Reveal></section>
+    <section id="organisasi"><Reveal><div className="renstra-wrap"><h2>Enam unit, satu mandat makro</h2><p className="sub">Berdasarkan Permen PPN/Kepala Bappenas No. 2 Tahun 2025. Pilih unit untuk menyorotnya di grafik pendanaan.</p><div className="units">{units.map((u,i)=><button className="unit" key={u.key} onClick={()=>{toggleUnit(i);document.getElementById("dana")?.scrollIntoView({behavior:reduced?"auto":"smooth"})}}><span className="sw" style={{background:colors[i]}}/><b>{u.name}</b><small>{u.description}</small></button>)}</div><h3>Kebutuhan pegawai belum terpenuhi</h3><p className="sub">Analisis Jabatan dan Analisis Beban Kerja menunjukkan kekurangan <CountUp value={sdmGapTotal} reduced={reduced}/> pegawai. Jabatan perencana paling terdampak.</p><div className="sdm">{sdm.map(row=><div className="sdm-row" key={row.label}><span>{row.label}</span><div className="track"><div className="fill" style={{width:`${row.value/96*100}%`}}/></div><b><CountUp value={row.value} reduced={reduced}/></b></div>)}</div><p className="src">Sumber: Tabel 1.5, Renstra file hlm. 29–30 (hlm. dokumen 23–24). Rincian lengkap 39 jenis jabatan fungsional dan 4 jabatan pelaksana tersedia pada tabel berikut.</p><TablesFor ids={["1.4", "1.5", "1.5b"]} /><h3>Rencana pengembangan SDM 2025–2029</h3><ul className="sdm-plan">{sdmPlan.map((item)=><li key={item.title}><b>{item.title}</b><span>{item.detail}</span></li>)}</ul><p className="src">Sumber: Renstra file hlm. 32–36 (hlm. dokumen 26–30), termasuk Gambar 1.8 Pipeline Pengembangan Sumber Daya Manusia.</p></div></Reveal></section>
     <section id="pohon"><Reveal><div className="renstra-wrap"><h2>Pohon kinerja</h2><p className="sub">Ketuk kotak mana pun untuk melihat rantai sasaran dan indikator terkait.</p><div className={`tree ${focus?"has-focus":""}`}>{treeColumns.map(col=><div className="tree-col" key={col.title}><h4>{col.title}</h4>{col.nodes.map(node=><button key={node.id} className={`node ${related.has(node.id)?"hit":""}`} onClick={()=>setFocus(focus===node.id?null:node.id)} aria-pressed={focus===node.id}>{node.text}</button>)}</div>)}</div><p className="src">Sumber: Tabel 2.1, Renstra hlm. 36–37.</p></div></Reveal></section>
     {accordionSections.slice(4).map(s=>s.id === "proses-bisnis" ? <section id={s.id} key={s.id}><Reveal><div className="renstra-wrap"><h2>{s.title}</h2><p className="sub">Peta digital ini merangkum narasi proses bisnis per fungsi dan per unit kerja pada PDF file hlm. 77–117 (hlm. dokumen 71–111). Buka unit/fungsi untuk melihat langkah proses dan rujukan halamannya.</p><ProcessMap/><p className="src">Sumber: Renstra Deputi Bidang PMP 2025–2029, Bab 2.6.1–2.6.2, PDF file hlm. 77–117 / hlm. dokumen 71–111 (Gambar 2.6–2.12). Diagram yang hanya tersedia sebagai gambar ditandai secara eksplisit pada kartu unit; langkah proses disusun dari narasi sumber tanpa penambahan.</p></div></Reveal></section> : <AccordionSection key={s.id} section={s}/>)}
     <section id="target"><Reveal><div className="renstra-wrap"><h2>Target IKU 2025–2029</h2><p className="sub">Empat IKU yang menjadi acuan Perjanjian Kinerja tahunan. Pilih indikator.</p><div className="tabs" role="group" aria-label="Pilih IKU">{iku.map((item,i)=><button key={item.name} className="tab" onClick={()=>setIkuIndex(i)} aria-pressed={ikuIndex===i}>{item.name}</button>)}</div><div className="chart"><LineChart index={ikuIndex} reduced={reduced}/></div><p className="sub">{iku[ikuIndex].note}</p><TablesFor ids={["3.3"]} /></div></Reveal></section>
-    <section id="dana"><Reveal><div className="renstra-wrap"><h2>Kerangka pendanaan</h2><p className="sub">Pagu indikatif per unit kerja (Rupiah Murni), dalam miliar rupiah. Ketuk nama unit untuk menyembunyikan atau menampilkan.</p><div className="chart"><FundingChart hidden={hidden} reduced={reduced}/></div><div className="legend">{units.map((u,i)=><button key={u.key} onClick={()=>toggleUnit(i)} aria-pressed={!hidden.has(i)}><i style={{background:colors[i]}}/>{u.name.replace("Dit. ","")}</button>)}</div><p className="note"><b>Catatan verifikasi:</b> kolom “Total” per unit di tabel sumber tidak sama dengan jumlah lima tahunnya (misalnya Sekretariat Deputi tertulis Rp33,1 M, sedangkan penjumlahan per tahun sekitar Rp80,2 M). Grafik ini memakai angka per tahun. Total penjumlahan tahunan adalah Rp329,6 M, sedangkan tabel mencantumkan Rp383,6 M. Angka tidak dikoreksi secara diam-diam.</p><TablesFor ids={["3.11"]} /></div></Reveal></section>
+    <section id="dana"><Reveal><div className="renstra-wrap"><h2>Kerangka pendanaan</h2><p className="sub">Pagu indikatif per unit kerja (Rupiah Murni), dalam miliar rupiah. Ketuk nama unit untuk menyembunyikan atau menampilkan.</p><div className="chart"><FundingChart hidden={hidden} reduced={reduced}/></div><div className="legend">{units.map((u,i)=><button key={u.key} onClick={()=>toggleUnit(i)} aria-pressed={!hidden.has(i)}><i style={{background:colors[i]}}/>{u.name.replace("Dit. ","")}</button>)}</div><p className="note"><b>Catatan verifikasi:</b> kolom “Total” per unit di tabel sumber tidak sama dengan jumlah lima tahunnya (misalnya Sekretariat Deputi tertulis Rp33,1 M, sedangkan penjumlahan per tahun sekitar Rp80,2 M). Grafik ini memakai angka per tahun. Total penjumlahan tahunan adalah <CountUp value={329.6} decimals={1} prefix="Rp" suffix=" M" reduced={reduced}/>, sedangkan tabel mencantumkan <CountUp value={383.6} decimals={1} prefix="Rp" suffix=" M" reduced={reduced}/>. Angka tidak dikoreksi secara diam-diam.</p><TablesFor ids={["3.11"]} /></div></Reveal></section>
     <footer id="penutup"><div className="renstra-wrap"><h2>Penutup</h2><p>Renstra ini menjadi pedoman seluruh unit kerja di lingkungan Kedeputian PMP untuk memastikan pelaksanaan program dan pencapaian outcome yang mendukung visi, misi, dan sasaran strategis Kementerian PPN/Bappenas.</p><a className="download" href={renstraMeta.pdf} download>Unduh dokumen lengkap (PDF)</a><p className="src">Konten ringkas mengacu pada dokumen Renstra Deputi Bidang PMP 2025–2029.</p></div></footer>
     <button className="back-to-top" onClick={()=>window.scrollTo({top:0, behavior:reduced?"auto":"smooth"})} aria-label="Kembali ke atas">↑</button>
   </div>;
