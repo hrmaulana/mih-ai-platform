@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Renstra Deputi Bidang PMP 2025–2029</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,650&family=Public+Sans:wght@400;500;650&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F7F6; --panel:#FFFFFF; --ink:#16282C; --muted:#56696D; --line:#D5DEDD;
+  --deep:#0E3B43; --teal:#2F7F8C; --ochre:#C08A22; --sky:#9BC4CE;
+  --u1:#0E3B43;--u2:#2F7F8C;--u3:#6FA9B5;--u4:#C08A22;--u5:#8C6B3E;--u6:#A7B8B9;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0F1B1D;--panel:#16262A;--ink:#E4ECEB;--muted:#9AB0B2;--line:#2A3E42;--deep:#9BC4CE;--teal:#5FB0BD;--ochre:#E0AD4A;--sky:#3C6F7A;
+  --u1:#9BC4CE;--u2:#5FB0BD;--u3:#3C8795;--u4:#E0AD4A;--u5:#B98F58;--u6:#6E8386;}}
+:root[data-theme="dark"]{--paper:#0F1B1D;--panel:#16262A;--ink:#E4ECEB;--muted:#9AB0B2;--line:#2A3E42;--deep:#9BC4CE;--teal:#5FB0BD;--ochre:#E0AD4A;--sky:#3C6F7A;
+  --u1:#9BC4CE;--u2:#5FB0BD;--u3:#3C8795;--u4:#E0AD4A;--u5:#B98F58;--u6:#6E8386;}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:calc(env(safe-area-inset-top,0px) + 56px)}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 "Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2,h3{font-family:"Newsreader",Georgia,"Times New Roman",serif;font-weight:650;line-height:1.15;margin:0}
+h2{font-size:clamp(1.8rem,4vw,2.6rem)}
+h3{font-size:1.25rem;font-weight:500}
+p{margin:.6em 0;max-width:68ch}
+a{color:var(--teal)}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--ochre);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+/* nav */
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav.toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:8px;padding-bottom:8px;scrollbar-width:none}
+nav.toc a{white-space:nowrap;text-decoration:none;color:var(--muted);font-size:.88rem;padding:6px 10px;border-radius:6px}
+nav.toc a.on{background:var(--deep);color:var(--paper)}
+#bar{position:absolute;left:0;bottom:-1px;height:2px;background:var(--ochre);width:0}
+/* hero */
+header.hero{padding:64px 0 40px}
+.hero .kicker{color:var(--muted);font-size:.95rem}
+.hero h1{font-size:clamp(2.4rem,7vw,4.8rem);letter-spacing:-.01em;margin:10px 0 18px;max-width:14ch}
+.hero .goals{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:28px}
+.goal{border-left:3px solid var(--ochre);padding:2px 0 2px 16px}
+.goal b{display:block;font-family:"Newsreader",Georgia,serif;font-size:1.05rem;font-weight:650}
+.facts{display:flex;flex-wrap:wrap;gap:28px;margin-top:34px;padding-top:22px;border-top:1px solid var(--line)}
+.facts div{font-size:.9rem;color:var(--muted)}
+.facts strong{display:block;font-family:"Newsreader",Georgia,serif;font-size:2rem;color:var(--ink);font-weight:650}
+section{padding:56px 0;border-top:1px solid var(--line)}
+.sub{color:var(--muted);margin-top:8px}
+.src{font-size:.8rem;color:var(--muted);margin-top:14px}
+/* units */
+.units{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin-top:24px}
+.unit{background:var(--panel);padding:16px 18px;text-align:left;border:0;color:inherit}
+.unit .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px}
+.unit b{font-weight:650}
+.unit small{display:block;color:var(--muted);margin-top:4px;line-height:1.45}
+.sdm{margin-top:28px;display:grid;gap:8px;max-width:640px}
+.sdm .row{display:grid;grid-template-columns:150px 1fr 40px;align-items:center;gap:10px;font-size:.9rem}
+.sdm .track{height:14px;background:var(--line);border-radius:3px;overflow:hidden}
+.sdm .fill{height:100%;background:var(--teal)}
+/* tree */
+.tree{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:26px;position:relative}
+.col h4{margin:0 0 10px;font-size:.82rem;color:var(--muted);font-weight:500}
+.node{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px;color:inherit;font-size:.88rem;line-height:1.4;transition:border-color .2s,opacity .2s}
+.tree.focus .node{opacity:.35}
+.tree.focus .node.hit{opacity:1;border-color:var(--teal);box-shadow:inset 3px 0 0 var(--teal)}
+.col:last-child .node{font-weight:650}
+@media (max-width:760px){.tree{grid-template-columns:1fr}.col h4{margin-top:10px}}
+/* charts */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.tab{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:7px 14px;font-size:.88rem}
+.tab[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:var(--paper)}
+.chart{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;margin-top:16px;overflow-x:auto}
+.chart svg{display:block;width:100%;min-width:520px;height:auto}
+.chart text{fill:var(--muted);font:12px "Public Sans",system-ui,sans-serif}
+.chart .val{fill:var(--ink);font-weight:650}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.84rem;margin-top:12px}
+.legend button{border:0;background:none;color:var(--ink);padding:2px 0;display:flex;align-items:center;gap:6px}
+.legend button[aria-pressed="false"]{opacity:.35}
+.legend i{width:11px;height:11px;border-radius:2px;display:inline-block}
+.note{background:color-mix(in srgb,var(--ochre) 14%,var(--panel));border-left:3px solid var(--ochre);padding:10px 14px;font-size:.88rem;margin-top:16px;max-width:none}
+details{border-top:1px solid var(--line);padding:12px 0}
+details:last-of-type{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;font-weight:650}
+details p{color:var(--muted)}
+footer{padding:48px 0 64px;border-top:1px solid var(--line);color:var(--muted);font-size:.9rem}
+.btn{display:inline-block;margin-top:14px;padding:10px 18px;border-radius:8px;background:var(--deep);color:var(--paper);text-decoration:none}
+</style>
+</head>
+<body>
+<nav class="toc" aria-label="Daftar isi"><div class="wrap" id="toc">
+  <a href="#konteks">Konteks</a><a href="#organisasi">Organisasi</a><a href="#pohon">Pohon kinerja</a><a href="#strategi">Strategi</a><a href="#target">Target IKU</a><a href="#dana">Pendanaan</a><a href="#penutup">Penutup</a>
+</div><div id="bar"></div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="kicker">Kementerian PPN/Bappenas · Rencana Strategis</div>
+  <h1>Deputi Bidang Perencanaan Makro Pembangunan 2025–2029</h1>
+  <p>Arah, sasaran, dan target lima tahun Kedeputian PMP dalam mendukung RPJMN 2025–2029 menuju Indonesia Emas 2045.</p>
+  <div class="goals">
+    <div class="goal"><b>Tujuan 1</b>Perencanaan pembangunan makro yang kredibel, terintegrasi, dan berbasis bukti untuk pertumbuhan yang tinggi, inklusif, dan berkelanjutan.</div>
+    <div class="goal"><b>Tujuan 2</b>Daya tanggap dan model inovasi pembangunan serta transformasi struktural melalui pemodelan makroekonomi dan peningkatan produktivitas.</div>
+  </div>
+  <div class="facts">
+    <div><strong>6</strong>unit kerja eselon II</div>
+    <div><strong>4</strong>IKU kedeputian</div>
+    <div><strong>27</strong>rincian output</div>
+    <div><strong>Rp329,6 M</strong>pagu indikatif 5 tahun</div>
+  </div>
+</div></header>
+
+<section id="konteks"><div class="wrap">
+  <h2>Dari mana kita berangkat</h2>
+  <p class="sub">Bab I merangkum capaian 2020–2024, dinamika strategis 2025–2029, serta potensi dan permasalahan yang membentuk arah Renstra.</p>
+  <details><summary>Capaian kinerja 2020–2024</summary><p>Capaian perekonomian Indonesia dan capaian Kedeputian PMP, termasuk pencapaian Prioritas Nasional RKP 2020–2024 lingkup ekonomi (Tabel 1.1). <em>Prototipe: isi akan diubah menjadi timeline capaian.</em></p></details>
+  <details><summary>Dinamika lingkungan strategis</summary><p>Transformasi menuju Indonesia Emas 2045, dinamika global dan nasional, serta sasaran utama pembangunan 2029 dalam RPJMN (Tabel 1.2).</p></details>
+  <details><summary>Potensi dan permasalahan</summary><p>Potensi dan rencana aksi penguatan 2025–2029 (Tabel 1.3), serta permasalahan yang perlu dijawab kedeputian.</p></details>
+  <details><summary>Metodologi dan teori perubahan</summary><p>Metodologi penyusunan dan rantai hasil (Theory of Change) dari input hingga outcome.</p></details>
+</div></section>
+
+<section id="organisasi"><div class="wrap">
+  <h2>Enam unit, satu mandat makro</h2>
+  <p class="sub">Berdasarkan Permen PPN/Kepala Bappenas No. 2 Tahun 2025. Pilih unit untuk menyorotnya di grafik pendanaan.</p>
+  <div class="units" id="units"></div>
+  <h3 style="margin-top:36px">Kebutuhan pegawai belum terpenuhi</h3>
+  <p class="sub">Analisis Beban Kerja menunjukkan kekurangan 178 pegawai. Jabatan perencana paling terdampak.</p>
+  <div class="sdm" id="sdm"></div>
+  <div class="src">Sumber: Renstra hlm. 21–22. Rincian jabatan lain menyusul di versi lengkap.</div>
+</div></section>
+
+<section id="pohon"><div class="wrap">
+  <h2>Pohon kinerja</h2>
+  <p class="sub">Bagaimana sasaran Kementerian turun menjadi IKU Kedeputian. Ketuk kotak mana pun untuk melihat rantainya.</p>
+  <div class="tree" id="tree"></div>
+  <div class="src">Sumber: Tabel 2.1, Renstra hlm. 36–37.</div>
+</div></section>
+
+<section id="strategi"><div class="wrap">
+  <h2>Arah kebijakan dan strategi</h2>
+  <p class="sub">Bab II adalah bagian terpanjang (85 halaman). Di versi web, isinya dipadatkan dan detailnya bisa dibuka.</p>
+  <details><summary>Arah kebijakan mendukung RPJMN 2025–2029</summary><p>Dukungan kedeputian terhadap capaian indikator RPJMN (Tabel 2.3) dan kontribusi peran terhadap fungsi Bappenas (Tabel 2.4). <em>Prototipe: akan menjadi matriks yang bisa difilter per unit.</em></p></details>
+  <details><summary>Output dan outcome</summary><p>Pemetaan outcome dan output 2025–2029 (Tabel 2.5–2.6), dari output unit kerja ke IKU.</p></details>
+  <details><summary>Strategi pelaksanaan</summary><p>Strategi utama dan tambahan Kedeputian PMP (Tabel 2.7–2.8).</p></details>
+  <details><summary>Kerangka regulasi</summary><p>Kebutuhan regulasi yang diamanatkan dan regulasi pendukung (Tabel 2.9–2.10).</p></details>
+  <details><summary>Proses bisnis</summary><p>Proses bisnis berdasarkan fungsi dan per unit kerja (hlm. 70–117). <em>Prototipe: akan diringkas menjadi diagram alur per unit.</em></p></details>
+</div></section>
+
+<section id="target"><div class="wrap">
+  <h2>Target IKU 2025–2029</h2>
+  <p class="sub">Empat IKU yang menjadi acuan Perjanjian Kinerja tahunan. Pilih indikator.</p>
+  <div class="tabs" id="ikuTabs" role="group" aria-label="Pilih IKU"></div>
+  <div class="chart"><svg id="ikuChart" viewBox="0 0 640 280" role="img" aria-label="Grafik target IKU"></svg></div>
+  <p id="ikuNote" class="sub"></p>
+  <div class="src">Sumber: Tabel 3.3, Renstra hlm. 124–125.</div>
+</div></section>
+
+<section id="dana"><div class="wrap">
+  <h2>Kerangka pendanaan</h2>
+  <p class="sub">Pagu indikatif per unit kerja (Rupiah Murni), dalam miliar rupiah. Anggaran melonjak mulai 2028. Ketuk nama unit untuk menyembunyikan atau menampilkan.</p>
+  <div class="chart"><svg id="danaChart" viewBox="0 0 640 320" role="img" aria-label="Grafik pagu per tahun"></svg></div>
+  <div class="legend" id="danaLegend"></div>
+  <p class="note">Perlu verifikasi: kolom "Total" per unit di tabel sumber tidak sama dengan jumlah lima tahunnya (misalnya Sekretariat Deputi tertulis Rp33,1 M, padahal penjumlahan per tahun sekitar Rp80,2 M). Grafik ini memakai angka per tahun. Total keseluruhan dari penjumlahan tahunan adalah Rp329,6 M, sedangkan tabel mencantumkan Rp383,6 M.</p>
+  <div class="src">Sumber: Bab 3.4, Renstra hlm. 132–144.</div>
+</div></section>
+
+<footer id="penutup"><div class="wrap">
+  <h2 style="color:var(--ink)">Penutup</h2>
+  <p>Renstra ini menjadi pedoman seluruh unit kerja di lingkungan Kedeputian PMP untuk memastikan pelaksanaan program dan pencapaian outcome yang mendukung visi, misi, dan sasaran strategis Kementerian PPN/Bappenas.</p>
+  <a class="btn" href="#">Unduh dokumen lengkap (PDF)</a>
+  <p style="margin-top:28px">Prototipe versi digital. Konten ringkas mengacu pada dokumen Renstra Deputi Bidang PMP 2025–2029.</p>
+</div></footer>
+
+<script>
+const UNITS=[
+ {k:"setdep",n:"Sekretariat Deputi",d:"Dukungan manajemen, tata kelola internal, dan administrasi kedeputian.",v:[11.85,17.61,18.07,15.77,16.90]},
+ {k:"pempmp",n:"Dit. Ekonomi Makro & Model Pembangunan",d:"Kerangka ekonomi makro nasional-daerah dan pengembangan model pembangunan.",v:[3.81,5.13,6.50,19.31,17.75]},
+ {k:"pfmsk",n:"Dit. Fiskal, Moneter & Sektor Keuangan",d:"Perencanaan kebijakan fiskal, moneter, dan sektor keuangan; sinkronisasi kerangka makro fiskal.",v:[1.63,5.59,7.00,19.92,18.21]},
+ {k:"phkei",n:"Dit. Hilirisasi & Kerja Sama Ekonomi Internasional",d:"Perencanaan hilirisasi pendukung PKPN dan kerja sama ekonomi internasional.",v:[2.02,5.33,6.25,12.78,13.69]},
+ {k:"p4t",n:"Dit. Produktivitas & Pembangunan Tematik",d:"Peningkatan produktivitas dan perencanaan pembangunan tematik.",v:[0.36,4.76,6.49,16.19,17.35]},
+ {k:"sitala",n:"Dit. Sinergi & Tata Kelola Perencanaan",d:"Desain proses dokumen perencanaan, integrasi PKPN, dan manajemen data perencanaan.",v:[0.05,4.28,7.00,23.17,24.83]}
+];
+const COLORS=["--u1","--u2","--u3","--u4","--u5","--u6"];
+const col=i=>getComputedStyle(document.documentElement).getPropertyValue(COLORS[i]).trim();
+const YEARS=[2025,2026,2027,2028,2029];
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e};
+
+/* units */
+const hidden=new Set();
+const uBox=document.getElementById("units");
+UNITS.forEach((u,i)=>{const b=document.createElement("button");b.className="unit";b.innerHTML=`<span class="sw" style="background:var(${COLORS[i]})"></span><b>${u.n}</b><small>${u.d}</small>`;
+ b.onclick=()=>{hidden.clear();UNITS.forEach((x,j)=>j!==i&&hidden.add(j));drawDana();document.getElementById("dana").scrollIntoView()};uBox.appendChild(b)});
+
+/* sdm */
+[["Perencana Ahli Muda",49],["Perencana Ahli Madya",33],["Jabatan lainnya",96]].forEach(([n,v])=>{
+ document.getElementById("sdm").insertAdjacentHTML("beforeend",`<div class="row"><span>${n}</span><div class="track"><div class="fill" style="width:${v/96*100}%"></div></div><b>${v}</b></div>`)});
+
+/* tree */
+const T={cols:["Sasaran strategis Kementerian","Indikator Kementerian","Sasaran strategis Deputi","IKU Deputi PMP"],
+ nodes:[
+  [["k1","Dokumen perencanaan berkualitas, terukur, dan lengkap sebagai acuan pembangunan nasional"],["k2","Efektivitas pengendalian perencanaan dan pelaksanaan pembangunan"],["k3","Kebijakan percepatan dan responsivitas perencanaan atas isu nasional"],["k4","Kinerja dan layanan prima yang bersih, akuntabel, profesional"]],
+  [["i1","Indeks Kualitas Perencanaan Pembangunan Nasional","k1"],["i2","Indeks Kinerja Pengendalian Perencanaan dan Pelaksanaan","k2"],["i3","Indeks Daya Tanggap Perencanaan Pembangunan Nasional","k3"],["i4","Tingkat Maturitas Tata Kelola Pemerintahan Baik","k4"],["i5","Indeks Kepuasan Pemangku Kepentingan","k4"]],
+  [["d1","Dokumen perencanaan berkualitas lingkup Perencanaan Makro","i1"],["d2","Kebijakan percepatan dan responsivitas lingkup Perencanaan Makro","i3"],["d3","Kinerja dan layanan prima lingkup Perencanaan Makro","i4 i5"]],
+  [["q1","Indeks Kualitas Perencanaan Lingkup PMP","d1"],["q2","Indeks Daya Tanggap Perencanaan Lingkup PMP","d2"],["q3","Tingkat Tata Kelola Internal Lingkup PMP","d3"],["q4","Indeks Kepuasan Stakeholder Lingkup PMP","d3"]]
+ ]};
+const parent={},kids={};
+T.nodes.forEach(c=>c.forEach(([id,,p])=>{if(p)p.split(" ").forEach(x=>{(parent[id]=parent[id]||[]).push(x);(kids[x]=kids[x]||[]).push(id)})}));
+const tree=document.getElementById("tree");
+T.nodes.forEach((c,ci)=>{const d=document.createElement("div");d.className="col";d.innerHTML=`<h4>${T.cols[ci]}</h4>`;
+ c.forEach(([id,t])=>{const b=document.createElement("button");b.className="node";b.dataset.id=id;b.textContent=t;b.onclick=()=>focusNode(id);d.appendChild(b)});tree.appendChild(d)});
+let cur=null;
+function focusNode(id){
+ if(cur===id){cur=null;tree.classList.remove("focus");return}cur=id;
+ const set=new Set([id]);const up=x=>(parent[x]||[]).forEach(p=>{set.add(p);up(p)});const dn=x=>(kids[x]||[]).forEach(k=>{set.add(k);dn(k)});up(id);dn(id);
+ // also include siblings' links of ancestors downward is too broad; keep direct chain
+ tree.classList.add("focus");tree.querySelectorAll(".node").forEach(n=>n.classList.toggle("hit",set.has(n.dataset.id)));
+}
+
+/* IKU */
+const IKU=[
+ {n:"Indeks Kualitas Perencanaan",v:[78,83,88,93,98],note:"Naik 5 poin per tahun, dari 78 menjadi 98. Program Perencanaan Pembangunan Nasional."},
+ {n:"Indeks Daya Tanggap",v:[75,75,75,75,75],note:"Ditargetkan stabil di 75 sepanjang periode. Program Perencanaan Pembangunan Nasional."},
+ {n:"Tata Kelola Internal",v:[86.5,88.75,91,93.25,95.5],note:"Naik 2,25 poin per tahun, dari 86,5 menjadi 95,5. Program Dukungan Manajemen."},
+ {n:"Kepuasan Stakeholder",v:[92,94,96,98,100],note:"Naik 2 poin per tahun hingga 100 di 2029. Program Dukungan Manajemen."}
+];
+const tabs=document.getElementById("ikuTabs");
+IKU.forEach((k,i)=>{const b=document.createElement("button");b.className="tab";b.textContent=k.n;b.onclick=()=>drawIku(i);tabs.appendChild(b)});
+const fmt=x=>String(x).replace(".",",");
+function drawIku(i){
+ [...tabs.children].forEach((b,j)=>b.setAttribute("aria-pressed",j===i));
+ const s=document.getElementById("ikuChart");s.innerHTML="";const k=IKU[i];
+ const L=50,R=610,Tp=30,B=240,min=60,max=100,x=j=>L+j*(R-L)/4,y=v=>B-(v-min)/(max-min)*(B-Tp);
+ [60,70,80,90,100].forEach(g=>{el("line",{x1:L,x2:R,y1:y(g),y2:y(g),stroke:"var(--line)"},s);el("text",{x:L-10,y:y(g)+4,"text-anchor":"end"},s).textContent=g});
+ YEARS.forEach((yr,j)=>el("text",{x:x(j),y:B+22,"text-anchor":"middle"},s).textContent=yr);
+ const pts=k.v.map((v,j)=>`${x(j)},${y(v)}`).join(" ");
+ el("polygon",{points:`${x(0)},${B} ${pts} ${x(4)},${B}`,fill:"var(--teal)",opacity:.12},s);
+ el("polyline",{points:pts,fill:"none",stroke:"var(--teal)","stroke-width":3},s);
+ k.v.forEach((v,j)=>{el("circle",{cx:x(j),cy:y(v),r:5,fill:"var(--panel)",stroke:"var(--teal)","stroke-width":2.5},s);const t=el("text",{x:x(j),y:y(v)-12,"text-anchor":"middle",class:"val"},s);t.textContent=fmt(v)});
+ document.getElementById("ikuNote").textContent=k.note;
+}
+drawIku(0);
+
+/* dana */
+const lg=document.getElementById("danaLegend");
+UNITS.forEach((u,i)=>{const b=document.createElement("button");b.innerHTML=`<i style="background:var(${COLORS[i]})"></i>${u.n.replace("Dit. ","")}`;
+ b.onclick=()=>{hidden.has(i)?hidden.delete(i):hidden.add(i);if(hidden.size===UNITS.length)hidden.delete(i);drawDana()};lg.appendChild(b)});
+function drawDana(){
+ [...lg.children].forEach((b,i)=>b.setAttribute("aria-pressed",!hidden.has(i)));
+ const s=document.getElementById("danaChart");s.innerHTML="";
+ const L=50,R=610,Tp=20,B=280,max=120,bw=64,x=j=>L+30+j*((R-L-60)/4),y=v=>B-v/max*(B-Tp);
+ [0,30,60,90,120].forEach(g=>{el("line",{x1:L,x2:R,y1:y(g),y2:y(g),stroke:"var(--line)"},s);el("text",{x:L-10,y:y(g)+4,"text-anchor":"end"},s).textContent=g});
+ YEARS.forEach((yr,j)=>{let acc=0;
+  UNITS.forEach((u,i)=>{if(hidden.has(i))return;const v=u.v[j];const r=el("rect",{x:x(j)-bw/2,y:y(acc+v),width:bw,height:Math.max(0,y(acc)-y(acc+v)),fill:`var(${COLORS[i]})`},s);
+   el("title",{},r).textContent=`${u.n} ${yr}: Rp${fmt(v.toFixed(2))} M`;acc+=v});
+  el("text",{x:x(j),y:y(acc)-8,"text-anchor":"middle",class:"val"},s).textContent=fmt(acc.toFixed(1));
+  el("text",{x:x(j),y:B+22,"text-anchor":"middle"},s).textContent=yr});
+}
+drawDana();
+
+/* nav highlight + progress */
+const links=[...document.querySelectorAll("#toc a")],secs=links.map(a=>document.querySelector(a.getAttribute("href")));
+function onScroll(){const h=document.documentElement;document.getElementById("bar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+"%";
+ let idx=-1;secs.forEach((s,i)=>{if(s.getBoundingClientRect().top<120)idx=i});
+ links.forEach((a,i)=>a.classList.toggle("on",i===idx));if(idx>=0){const t=document.getElementById("toc");t.scrollLeft=links[idx].offsetLeft-20}}
+addEventListener("scroll",onScroll,{passive:true});onScroll();
+</script>
+</body>
+</html>
