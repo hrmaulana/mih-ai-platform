@@ -9,3 +9,15 @@
 @media(max-width:640px){.renstra-wrap{width:min(100% - 24px,1080px)}.source-table-figure{margin-inline:0}.source-table-scroll{margin-inline:-2px;width:calc(100% + 4px)}.source-table{min-width:680px}.source-table td,.source-table th{min-width:10rem}.source-table tbody th:first-child{min-width:11rem}.process-card summary{align-items:flex-start;flex-direction:column;gap:2px}.process-card summary small{font-size:.8rem}.source-table-figure figcaption strong{font-size:.95rem}}
 @media(prefers-reduced-motion:reduce){.source-table tbody tr{animation:none}.source-table tbody tr,.reveal,.hero-stagger,.funding-bar,.chart-line.draw{transition:none;animation:none;transform:none;opacity:1}}
 
+
+/* --- Tabel sumber: header kelompok kolom, baris judul kelompok, catatan, dan rencana SDM --- */
+.source-table-colgroup th{text-align:center;background:color-mix(in srgb,var(--deep) 16%,var(--panel))}
+.source-table tbody tr.source-table-group{background:color-mix(in srgb,var(--deep) 12%,var(--panel))}
+.source-table tbody tr.source-table-group th{position:static;min-width:0;white-space:normal;color:var(--deep)}
+.source-table-note{margin:12px 0 0;font-size:.86rem;color:var(--muted);line-height:1.5}
+.process-note{margin:12px 0 0;padding:10px 12px;border-left:3px solid var(--ochre);background:color-mix(in srgb,var(--ochre) 8%,var(--panel));font-size:.86rem;color:var(--muted);line-height:1.5}
+.sdm-plan{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:10px}
+.sdm-plan li{display:grid;gap:4px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.sdm-plan li b{color:var(--deep)}
+.sdm-plan li span{font-size:.9rem;color:var(--muted);line-height:1.55}
+@media(max-width:640px){.sdm-plan li{padding:10px 12px}.source-table-note,.process-note{font-size:.82rem}}

@@ -8,8 +8,39 @@ export const units: Unit[] = [
   { key: "p4t", name: "Dit. Produktivitas & Pembangunan Tematik", description: "Peningkatan produktivitas dan perencanaan pembangunan tematik.", values: [0.36, 4.76, 6.49, 16.19, 17.35] },
   { key: "sitala", name: "Dit. Sinergi & Tata Kelola Perencanaan", description: "Desain proses dokumen perencanaan, integrasi PKPN, dan manajemen data.", values: [0.05, 4.28, 7.00, 23.17, 24.83] },
 ];
+
+/** Kekurangan pegawai terbesar menurut Tabel 1.5 (file hlm. 29–30). Total gap 178 pegawai. */
+export const sdmGapTotal = 178;
 export const sdm = [
   { label: "Perencana Ahli Muda", value: 49 },
   { label: "Perencana Ahli Madya", value: 33 },
-  { label: "Jabatan lainnya", value: 96 },
+  { label: "Jabatan fungsional & pelaksana lainnya", value: 96 },
+];
+
+/** Rencana pengembangan SDM 2025–2029 (Renstra file hlm. 32–36). */
+export const sdmPlan = [
+  {
+    title: "Core Value PMP",
+    detail: "Pengembangan SDM berlandaskan 2 nilai dasar: ASN BerAKHLAK (Berorientasi Pelayanan, Akuntabel, Kompeten, Harmonis, Loyal, Adaptif, Kolaboratif) dan PMP Standard Competencies.",
+  },
+  {
+    title: "Penataan dan Pemenuhan Kebutuhan SDM",
+    detail: "Berdasarkan hasil Analisis Jabatan dan Analisis Beban Kerja dengan memprioritaskan jenis serta jenjang jabatan yang masih mengalami kesenjangan; data kepegawaian dikelola melalui satu kanal informasi (Dashboard). Pemenuhan gap dilakukan melalui pengusulan formasi, penempatan ASN, serta dukungan tenaga non-ASN sesuai SOP yang berlaku.",
+  },
+  {
+    title: "Pengembangan Karier dan Manajemen Talenta",
+    detail: "Diarahkan untuk mendukung peningkatan jenjang jabatan, kaderisasi, dan penyiapan pegawai yang mampu menjalankan peran strategis dan koordinatif, didukung penyusunan Individual Development Plan (IDP).",
+  },
+  {
+    title: "Monitoring dan Evaluasi Pengembangan SDM",
+    detail: "Menilai kesesuaian kebutuhan organisasi, pemenuhan pegawai, pelaksanaan IDP, peningkatan kompetensi, dan pencapaian kinerja; hasilnya menjadi dasar pembaruan rencana kebutuhan dan program pengembangan SDM.",
+  },
+  {
+    title: "Pendidikan",
+    detail: "Prioritas pada bidang ekonomi dan keilmuan relevan (ekonomi makro, ekonomi pembangunan, statistik, pemodelan, analisis data) dengan mempertimbangkan kesenjangan kompetensi, kebutuhan jabatan, dan rencana pengembangan karier.",
+  },
+  {
+    title: "Tenaga non-ASN",
+    detail: "Telah dilakukan pengangkatan 31 orang tenaga non-ASN melalui skema konsultan dan tenaga alih daya; keberadaannya merupakan dukungan operasional dan tidak menggantikan kebutuhan formasi ASN berdasarkan Analisis Jabatan dan Analisis Beban Kerja.",
+  },
 ];

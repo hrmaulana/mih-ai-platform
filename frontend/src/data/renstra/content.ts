@@ -10,5 +10,5 @@ export const accordionSections = [
  {id:"output",title:"Output dan outcome",intro:"Rantai hasil menghubungkan output unit kerja dengan outcome dan IKU.",items:[["Pemetaan hasil","Pemetaan outcome dan output 2025–2029 dirujuk pada Tabel 2.5–2.6."]]},
  {id:"strategi",title:"Strategi pelaksanaan",intro:"Strategi utama dan tambahan Kedeputian PMP menjadi jembatan implementasi sasaran.",items:[["Strategi","Strategi utama dan tambahan dirujuk pada Tabel 2.7–2.8."]]},
  {id:"regulasi",title:"Kerangka regulasi",intro:"Kerangka regulasi memuat kebutuhan regulasi yang diamanatkan dan regulasi pendukung.",items:[["Regulasi pendukung","Rujukan regulasi terdapat pada Tabel 2.9–2.10; halaman ini tidak menambahkan regulasi di luar dokumen."]]},
- {id:"proses-bisnis",title:"Proses bisnis",intro:"Proses bisnis dibaca berdasarkan fungsi dan unit kerja.",items:[["Peta proses","Rujukan proses bisnis berada pada halaman 70–117 PDF Renstra."]]},
+ {id:"proses-bisnis",title:"Proses bisnis",intro:"Proses bisnis dibaca berdasarkan fungsi dan unit kerja.",items:[["Peta proses","Rujukan proses bisnis berada pada PDF file hlm. 77–117 (hlm. dokumen 71–111) Renstra."]]},
 ];
