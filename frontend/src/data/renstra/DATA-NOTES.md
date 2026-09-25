@@ -8,6 +8,7 @@ Ringkasan halaman dan angka diambil dari `docs/references/Renstra-Dep-PMP-2025-2
 - Tabel yang baru ditranskripsikan memakai sitasi ganda (file + dokumen) agar dapat diverifikasi ulang. Tabel lama yang belum disentuh masih memakai satu nomor halaman seperti sebelumnya — lihat bagian *Pending*.
 
 ## Status item yang dikerjakan (SELESAI)
+0. **Tabel 1.1 lengkap.** Pencapaian Kinerja Prioritas Nasional (PN) RKP 2020–2024 Lingkup Ekonomi (file hlm. 11 / dokumen 5) ditranskripsikan: 2 baris PN — "Nilai Tambah Sektor Riil, Industrialisasi, dan Kesempatan Kerja" (2020: 49,20) dan "Memperkuat Ketahanan Ekonomi untuk Pertumbuhan yang Berkualitas dan Berkeadlian" (2021: 87,26; 2022: 88,78; 2023: 78,52; 2024: 78,15). Kolom tahun kosong pada sumber dibiarkan kosong; tabel ditampilkan pada section Konteks.
 1. **Tabel 2.7 lengkap.** Seluruh **31 baris** strategi (No, Strategi, Pendetailan Strategi dan Rencana Aksi) ditranskripsikan penuh dari PDF file **hlm. 63–72** (dokumen 57–66); label Tabel 2.7 ada di file hlm. 63 dan Tabel 2.8 di file hlm. 72. Baris ringkasan "4–16" dan "17–31" sudah dihapus dan diganti rincian asli. Redaksi sumber dipertahankan, termasuk kekeliruan ketik sumber (mis. "ABPN", "intensif fiskal", "Peneyelenggaaraan") tanpa koreksi diam-diam.
 2. **Sel lanjutan Tabel 2.4, 2.5, dan 2.6 terselesaikan.** Tidak ada lagi placeholder `[teks tabel berlanjut pada sumber]` / `[kosong pada sumber]`.
    - **Tabel 2.4** (file hlm. 49–50): sel kolom Pembiayaan dilanjutkan ("...fiskal, dan moneter dalam penyusunan APBN"), kolom Perencanaan mendapat butir tambahan, dan kolom Pemampu/Enabler butir ketiga dilengkapi. Catatan: butir 1 dan 3 kolom Pemampu/Enabler memang identik pada sumber dan dibiarkan apa adanya.
@@ -31,6 +32,6 @@ Ringkasan halaman dan angka diambil dari `docs/references/Renstra-Dep-PMP-2025-2
 
 ## Pending / belum dikerjakan
 - Tabel **2.1, 2.2, 3.1, 3.2, 3.4–3.10** belum ditampilkan pada halaman (hanya dirujuk naratif).
-- Tabel **1.1** dan **2.2** masih tersedia hanya di PDF sumber.
+- Tabel **2.2** masih tersedia hanya di PDF sumber.
 - Sitasi halaman pada tabel 1.2, 1.3, 2.3, 2.8, 2.9, 2.10, 3.3, dan 3.11 belum diseragamkan ke format ganda file/dokumen.
 - Kartu unit pada peta proses bisnis belum menampilkan isi diagram (Gambar 2.6–2.12) karena diagram berupa gambar; perlu konversi manual/vision bila isi diagram ingin ditampilkan.

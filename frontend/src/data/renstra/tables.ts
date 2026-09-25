@@ -15,6 +15,17 @@ export type SourceTable = {
 /** Transkripsi tabel dari Renstra Deputi Bidang PMP 2025-2029 (docs/references/Renstra-Dep-PMP-2025-2029.pdf). */
 export const renstraTables: SourceTable[] = [
   {
+    id: "1.1",
+    title: "Tabel 1.1 Pencapaian Kinerja Prioritas Nasional (PN) Rencana Kerja Pemerintah (RKP) Tahun 2020–2024 Lingkup Ekonomi",
+    sourcePages: "PDF Renstra file hlm. 11 (hlm. dokumen 5)",
+    columns: ["Prioritas Nasional", "2020", "2021", "2022", "2023", "2024"],
+    rows: [
+      ["Nilai Tambah Sektor Riil, Industrialisasi, dan Kesempatan Kerja", "49,20", "", "", "", ""],
+      ["Memperkuat Ketahanan Ekonomi untuk Pertumbuhan yang Berkualitas dan Berkeadlian", "", "87,26", "88,78", "78,52", "78,15"],
+    ],
+    note: "Tabel memuat dua Prioritas Nasional lingkup ekonomi: kolom 2020 hanya diberi nilai untuk pertama PN (Nilai Tambah Sektor Riil, Industrialisasi, dan Kesempatan Kerja), seterus kolom 2021–2024 untuk kedua PN (Memperkuat Ketahanan Ekonomi untuk Pertumbuhan yang Berkualitas dan Berkeadlian). Sel kosong berarti tidak diisi pada sumber, bukan data yang hilang. Sumber tabel: Laporan Evaluasi RKP Tahun 2020 sampai dengan Tahun 2024.",
+  },
+  {
     id: "1.2",
     title: "Tabel 1.2 Sasaran Utama Pembangunan 2029 dalam RPJMN 2025–2029",
     sourcePages: "PDF Renstra file hlm. 16 (hlm. dokumen 10)",

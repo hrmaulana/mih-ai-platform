@@ -97,7 +97,7 @@ function SourceTableView({ table }: { table: SourceTable }) {
 function TablesFor({ ids }: { ids: string[] }) { return <div className="source-tables">{ids.map((id) => { const table = tableById.get(id); return table ? <SourceTableView key={id} table={table} /> : null; })}</div>; }
 function ProcessMap() { return <div className="process-map">{processMap.map((item) => <details key={item.id} className="process-card"><summary><span>{item.unit}</span><small>PDF file hlm. {item.pages}</small></summary><div className="process-body"><p>{item.summary}</p><ol>{item.steps.map((step) => <li key={step}>{step}</li>)}</ol>{item.note ? <p className="process-note">{item.note}</p> : null}</div></details>)}</div>; }
 function AccordionSection({ section }: { section: typeof accordionSections[number] }) {
-  const tableIds: Record<string, string[]> = { dinamika: ["1.2"], isu: ["1.3"], kebijakan: ["2.3", "2.4"], output: ["2.5", "2.6"], strategi: ["2.7", "2.8"], regulasi: ["2.9", "2.10"] };
+  const tableIds: Record<string, string[]> = { konteks: ["1.1"], dinamika: ["1.2"], isu: ["1.3"], kebijakan: ["2.3", "2.4"], output: ["2.5", "2.6"], strategi: ["2.7", "2.8"], regulasi: ["2.9", "2.10"] };
   return <section id={section.id}><Reveal><div className="renstra-wrap"><h2>{section.title}</h2><p className="sub">{section.intro}</p>{section.items.map(([title, body]) => <details key={title}><summary>{title}</summary><div className="details-body"><p>{body}</p></div></details>)}{tableIds[section.id] ? <TablesFor ids={tableIds[section.id]} /> : null}</div></Reveal></section>;
 }
 
