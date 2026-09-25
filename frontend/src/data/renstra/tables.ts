@@ -10,6 +10,17 @@ export type SourceTable = {
   groupRowIndices?: number[];
   /** Catatan transkripsi/cakupan yang ditampilkan di bawah tabel. */
   note?: string;
+  /**
+   * Jenis layout tabel untuk menurunkan class, sticky, dan lebar kolom.
+   * - `standard`: kolom sedikit / nilai pendek (default).
+   * - `wide`: banyak kolom / angka (scroll horizontal lokal, sticky header saja).
+   * - `narrative`: sel berisi prosa panjang (mis. 2.4/2.5/2.6/2.7/2.8) → card view di mobile.
+   */
+  layout?: "standard" | "wide" | "narrative";
+  /** Freeze kolom pertama (sticky) hanya bila true; hanya cocok utk identifier pendek. */
+  stickyFirstColumn?: boolean;
+  /** Cara menyajikan di layar sempit. Default `scroll` (atau `cards` bila layout narrative). */
+  mobileMode?: "scroll" | "cards";
 };
 
 /** Transkripsi tabel dari Renstra Deputi Bidang PMP 2025-2029 (docs/references/Renstra-Dep-PMP-2025-2029.pdf). */
@@ -18,6 +29,7 @@ export const renstraTables: SourceTable[] = [
     id: "1.1",
     title: "Tabel 1.1 Pencapaian Kinerja Prioritas Nasional (PN) Rencana Kerja Pemerintah (RKP) Tahun 2020–2024 Lingkup Ekonomi",
     sourcePages: "PDF Renstra file hlm. 11 (hlm. dokumen 5)",
+    layout: "standard", stickyFirstColumn: false, mobileMode: "scroll",
     columns: ["Prioritas Nasional", "2020", "2021", "2022", "2023", "2024"],
     rows: [
       ["Nilai Tambah Sektor Riil, Industrialisasi, dan Kesempatan Kerja", "49,20", "", "", "", ""],
@@ -29,6 +41,7 @@ export const renstraTables: SourceTable[] = [
     id: "1.2",
     title: "Tabel 1.2 Sasaran Utama Pembangunan 2029 dalam RPJMN 2025–2029",
     sourcePages: "PDF Renstra file hlm. 16 (hlm. dokumen 10)",
+    layout: "standard", stickyFirstColumn: true, mobileMode: "scroll",
     columns: ["Dimensi", "Indikator", "Baseline (2024)", "Target 2029"],
     rows: [
       ["Pertumbuhan dan Pendapatan", "Pertumbuhan Ekonomi", "5,0% (2024)", "8,0%"],
@@ -48,6 +61,7 @@ export const renstraTables: SourceTable[] = [
     id: "1.3",
     title: "Tabel 1.3 Potensi dan Rencana Aksi Penguatan 2025–2029",
     sourcePages: "PDF Renstra file hlm. 21 (hlm. dokumen 15)",
+    layout: "narrative", stickyFirstColumn: false, mobileMode: "cards",
     columns: ["Klaster Potensi", "Potensi", "Potensi Penguatan 2025–2029"],
     rows: [
       ["Posisi dan mandat strategis", "Posisi strategis dalam strategic diamond tata kelola 2025–2029; peran penghubung kebijakan makro ↔ operasionalisasi lintas K/L", "PMP memimpin standard-setting prioritas dan konsistensi lintas dokumen, sebagai penghubung kebijakan makro dan eksekusi lintas K/L"],
@@ -62,6 +76,7 @@ export const renstraTables: SourceTable[] = [
     id: "1.4",
     title: "Tabel 1.4 Sebaran Pegawai Kedeputian Perencanaan Makro Pembangunan Berdasarkan Jabatan Fungsional dan Pelaksana",
     sourcePages: "PDF Renstra file hlm. 28–29 (hlm. dokumen 22–23)",
+    layout: "standard", stickyFirstColumn: false, mobileMode: "scroll",
     columns: ["Fungsional", "Jumlah"],
     rows: [
       ["Pejabat Tinggi Madya/Pratama", "7"],
@@ -88,6 +103,7 @@ export const renstraTables: SourceTable[] = [
     id: "1.5",
     title: "Tabel 1.5 Pemetaan Kondisi Eksisting dan Kebutuhan Pegawai di Kedeputian Bidang PMP (Jabatan Fungsional)",
     sourcePages: "PDF Renstra file hlm. 29–30 (hlm. dokumen 23–24)",
+    layout: "wide", stickyFirstColumn: false, mobileMode: "scroll",
     columns: ["Fungsional", "ABK", "PEMPMP", "PHKEI", "PFMSK", "P4T", "SITALA", "SEKDEP", "PNS", "PNS 2025", "PPPK", "GAP"],
     columnGroups: [{ label: "Fungsional", span: 1 }, { label: "Kebutuhan Berdasarkan ABK", span: 7 }, { label: "Eksisting", span: 3 }, { label: "GAP", span: 1 }],
     rows: [
@@ -138,6 +154,7 @@ export const renstraTables: SourceTable[] = [
     id: "1.5b",
     title: "Tabel 1.5 (lanjutan) Pemetaan Kondisi Eksisting dan Kebutuhan Pegawai — Jabatan Pelaksana",
     sourcePages: "PDF Renstra file hlm. 30 (hlm. dokumen 24)",
+    layout: "wide", stickyFirstColumn: false, mobileMode: "scroll",
     columns: ["Pelaksana", "ABK", "PEMPMP", "PHKEI", "PFMSK", "P4T", "SITALA", "SEKDEP", "GAP"],
     columnGroups: [{ label: "Pelaksana", span: 1 }, { label: "Kebutuhan Berdasarkan ABK", span: 1 }, { label: "Eksisting", span: 6 }, { label: "GAP", span: 1 }],
     rows: [
@@ -153,6 +170,7 @@ export const renstraTables: SourceTable[] = [
     id: "2.3",
     title: "Tabel 2.3 Dukungan Kedeputian PMP terhadap Capaian Indikator RPJMN 2025–2029",
     sourcePages: "PDF Renstra hlm. 40–41",
+    layout: "narrative", stickyFirstColumn: false, mobileMode: "cards",
     columns: ["Jenis", "Keterangan"],
     rows: [
       ["Sasaran Pembangunan", "1. Pertumbuhan Ekonomi. 2. GNI Per Kapita. 3. Kontribusi PDB Wilayah."],
@@ -163,6 +181,7 @@ export const renstraTables: SourceTable[] = [
     id: "2.4",
     title: "Tabel 2.4 Kontribusi Peran Kedeputian PMP terhadap Peran dan Fungsi Kementerian PPN/Bappenas",
     sourcePages: "PDF Renstra file hlm. 49–50 (hlm. dokumen 43–44)",
+    layout: "narrative", stickyFirstColumn: false, mobileMode: "cards",
     columns: ["Perencanaan", "Pembiayaan", "Pengendalian", "Pemampu/Enabler", "Penguatan Kelembagaan"],
     rows: [
       ["• Koordinasi, sinkronisasi, perumusan, dan penetapan kebijakan perencanaan pembangunan nasional dalam mendukung pencapaian pertumbuhan yang berkualitas dan berkelanjutan, penurunan kemiskinan, dan peningkatan produktivitas sumber daya manusia di bidang perencanaan makro pembangunan; • Koordinasi, sinkronisasi, dan integrasi penyusunan rencana pembangunan nasional; • Koordinasi, analisis, dan perumusan kebijakan untuk tema, sasaran, arah kebijakan prioritas, kerangka ekonomi makro, dan kerja sama internasional; • Koordinasi dan sinkronisasi penentuan sasaran dan target makro pembangunan nasional", "• Koordinasi, perumusan, dan penyusunan keselarasan kebijakan ekonomi termasuk asumsi dasar ekonomi makro dan analisis kebutuhan investasi yang bersumber dari APBN dan non-APBN; • Koordinasi dan sinkronisasi penyusunan kebijakan di bidang analisis statistik, kebutuhan investasi, fiskal, dan moneter dalam penyusunan APBN", "• Pemantauan dan evaluasi pelaksanaan program dan kegiatan di bidang perencanaan makro pembangunan; • Pelaksanaan evaluasi dan pelaporan pelaksanaan tugas dan fungsi perencanaan pembangunan nasional di bidang perencanaan makro pembangunan", "• Koordinasi percepatan pelaksanaan program rencana pembangunan nasional di bidang perencanaan makro pembangunan; • Penyusunan prakarsa strategis pembangunan lintas sektor pengembangan model inovatif pembangunan sebagai dasar penerapan dan pelembagaan dalam rencana dan anggaran kementerian/lembaga/pemerintah daerah di bidang perencanaan makro pembangunan; • Koordinasi percepatan pelaksanaan program rencana pembangunan nasional di bidang perencanaan makro pembangunan", "• Pelaksanaan administrasi deputi; • Pelaksanaan fungsi lain yang diberikan oleh menteri/kepala."],
@@ -173,6 +192,7 @@ export const renstraTables: SourceTable[] = [
     id: "2.5",
     title: "Tabel 2.5 Pemetaan Outcomes dan Output Kinerja Kedeputian PMP 2025–2029",
     sourcePages: "PDF Renstra file hlm. 55–56 (hlm. dokumen 49–50)",
+    layout: "narrative", stickyFirstColumn: false, mobileMode: "cards",
     columns: ["Sasaran Strategis", "Indikator Sasaran Strategis", "IKU Deputi", "Output Kegiatan"],
     rows: [
       ["Terwujudnya dokumen perencanaan yang berkualitas, terukur, dan lengkap untuk menjadi acuan pembangunan nasional", "Indeks Kualitas Perencanaan Pembangunan Nasional", "Indeks Kualitas Perencanaan Pembangunan Nasional Lingkup Perencanaan Makro Pembangunan", "Dokumen perencanaan yang berkualitas, terukur, lengkap disertai dengan pengelolaan risiko pembangunan nasional."],
@@ -191,6 +211,7 @@ export const renstraTables: SourceTable[] = [
     id: "2.6",
     title: "Tabel 2.6 Pemetaan Output Unit Kerja Mendukung IKU Kedeputian PMP 2025–2029",
     sourcePages: "PDF Renstra file hlm. 56–63 (hlm. dokumen 50–57)",
+    layout: "wide", stickyFirstColumn: false, mobileMode: "scroll",
     columns: ["IKU Deputi", "Output Kegiatan", "IKU Unit Kerja", "Output Kegiatan Unit Kerja"],
     rows: [
       ["Sasaran Strategis: Terwujudnya dokumen perencanaan yang berkualitas, terukur, dan lengkap untuk menjadi acuan pembangunan nasional — Indikator: Indeks Kualitas Perencanaan Pembangunan Nasional"],
@@ -253,6 +274,7 @@ export const renstraTables: SourceTable[] = [
     id: "2.7",
     title: "Tabel 2.7 Strategi Pelaksanaan Kedeputian PMP 2025–2029",
     sourcePages: "PDF Renstra file hlm. 63–72 (hlm. dokumen 57–66)",
+    layout: "wide", stickyFirstColumn: false, mobileMode: "scroll",
     columns: ["No", "Strategi Kedeputian PMP", "Pendetailan Strategi dan Rencana Aksi"],
     rows: [
       ["1", "Penyusunan Kerangka Ekonomi Makro Nasional dan Daerah", "• Melakukan exercise lintas kedeputian dan direktorat dengan mempertimbangkan perkembangan ekonomi terkini, target, program, direktif presiden serta realisasi pertumbuhan ekonomi triwulan; • Berkoordinasi dengan eksternal Bappenas melalui mekanisme rapat Asumsi Dasar Ekonomi Makro (ADEM) yang dilakukan setiap triwulan; • Berkoordinasi dengan Kementerian Keuangan untuk memastikan keselarasan antara Perencanaan (KEM RKP) dan Penganggaran (KEM-PPKF/Nota Keuangan ABPN); • Melakukan koordinasi dengan unit kerja sektor di Bappenas dengan Kementerian/Lembaga (K/L) sektor terkait untuk membahas kinerja sektoral terkini, mengidentifikasi tantangan dan potensi sektor serta menyelaraskan arah kebijakan masing-masing KL; • Melakukan exercise pertumbuhan ekonomi per provinsi dengan mempertimbangkan perkembangan ekonomi terkini, potensi daerah, program-program prioritas di daerah, direktif presiden, serta realisasi pertumbuhan ekonomi triwulanan; • Melaksanakan forum indikator makro daerah dalam rakortekrenbang untuk menyampaikan target indikator makro ke daerah; • Menyampaikan surat kepada Direktur Jenderal Bina Pembangunan Daerah, Kementerian Dalam Negeri terkait rekomendasi substansi penyelarasan RKP dan RKPD dalam Rancangan Peraturan Menteri Dalam Negeri terkait Pedoman Penyusunan RKPD"],
@@ -293,6 +315,7 @@ export const renstraTables: SourceTable[] = [
     id: "2.8",
     title: "Tabel 2.8 Strategi Pelaksanaan Tambahan Kedeputian PMP 2025–2029",
     sourcePages: "PDF Renstra file hlm. 72–73 (hlm. dokumen 66–67)",
+    layout: "wide", stickyFirstColumn: false, mobileMode: "scroll",
     columns: ["No", "Strategi Kedeputian PMP", "Pendetailan Strategi"],
     rows: [
       ["1", "Pengembangan manajemen pengetahuan melalui pemanfaatan teknologi", "Pengembangan website PMP; pengembangan perpustakaan PMP; koordinasi dengan Pusdatin dalam pengembangan AI Agent khusus."],
@@ -306,6 +329,7 @@ export const renstraTables: SourceTable[] = [
     id: "2.9",
     title: "Tabel 2.9 Kebutuhan Regulasi yang Diamanatkan",
     sourcePages: "PDF Renstra file hlm. 74 (hlm. dokumen 68)",
+    layout: "narrative", stickyFirstColumn: false, mobileMode: "cards",
     columns: ["No", "Arah/Kebutuhan Kerangka Regulasi", "Urgensi Pembentukan", "Unit Penanggung Jawab"],
     rows: [
       ["1", "Peraturan Pemerintah tentang Transformasi Pembangunan sebagai pelaksanaan misi pembangunan", "Pembentukan Peraturan Pemerintah untuk melaksanakan amanat dari Pasal 7 ayat (5) UU Nomor 59 Tahun 2024 tentang RPJPN 2025–2045 yang memerintahkan untuk mengatur penjabaran 8 (delapan) Misi Pembangunan dalam dokumen perincian perencanaan pembangunan jangka panjang nasional", "Sekretariat Deputi PMP"],
@@ -320,6 +344,7 @@ export const renstraTables: SourceTable[] = [
     id: "2.10",
     title: "Tabel 2.10 Kerangka Regulasi yang Bersifat Dukungan",
     sourcePages: "PDF Renstra file hlm. 74–76 (hlm. dokumen 68–70)",
+    layout: "narrative", stickyFirstColumn: false, mobileMode: "cards",
     columns: ["No", "Arah/Kebutuhan Kerangka Regulasi", "Urgensi Pembentukan", "Unit Penanggung Jawab"],
     rows: [
       ["1", "Pengaturan tentang pengembangan pembangunan yang bersifat lintas sektor sesuai dengan prioritas nasional", "Perlu peraturan dan turunannya hingga petunjuk teknis dan lapangan untuk kebijakan yang bersifat lintas sektor seperti isu penyandang disabilitas, keberlanjutusiaan, dan isu lainnya.", "UKE II terkait"],
@@ -337,6 +362,7 @@ export const renstraTables: SourceTable[] = [
     id: "3.3",
     title: "Tabel 3.3 IKU dan Target Kinerja Kedeputian PMP Tahun 2025–2029",
     sourcePages: "PDF Renstra file hlm. 130 (hlm. dokumen 124)",
+    layout: "standard", stickyFirstColumn: true, mobileMode: "scroll",
     columns: ["IKU UKE I", "Target 2025", "2026", "2027", "2028", "2029"],
     rows: [
       ["Indeks Kualitas Perencanaan Pembangunan Nasional Lingkup Perencanaan Makro Pembangunan", "78", "83", "88", "93", "98"],
@@ -349,6 +375,7 @@ export const renstraTables: SourceTable[] = [
     id: "3.11",
     title: "Tabel 3.11 Kerangka Pendanaan Deputi Bidang PMP (subtotal unit kerja)",
     sourcePages: "PDF Renstra file hlm. 141 dst. (hlm. dokumen 135 dst.)",
+    layout: "wide", stickyFirstColumn: true, mobileMode: "scroll",
     columns: ["Unit Kerja Eselon II", "Alokasi 2025 (dalam Ribu Rupiah)", "2026", "2027", "2028", "2029", "Total"],
     rows: [
       ["Direktorat PEMPMP", "Rp3.811.194", "Rp5.126.828", "Rp6.500.000", "Rp19.305.081", "Rp17.748.705", "Rp67.829.651"],

@@ -74,23 +74,50 @@ function FundingChart({ hidden, reduced }: { hidden: Set<number>; reduced: boole
     {years.map((yr, j) => { let acc = 0; return <g key={yr}>{units.map((u, i) => { if (hidden.has(i)) return null; const v=u.values[j], top=acc+v; const el=<rect key={u.key} className={reduced ? "funding-bar no-motion" : "funding-bar"} x={x(j)-32} y={y(top)} width="64" height={Math.max(0,y(acc)-y(top))} fill={colors[i]}><title>{`${u.name} ${yr}: Rp${format(v.toFixed(2))} M`}</title></rect>; acc=top; return el; })}<text x={x(j)} y={y(acc)-8} textAnchor="middle" className="chart-value">{format(acc.toFixed(1))}</text><text x={x(j)} y="300" textAnchor="middle">{yr}</text></g>})}
   </svg>;
 }
+function useOverflow() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [overflows, setOverflows] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => setOverflows(el.scrollWidth > el.clientWidth + 2);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    return () => { ro.disconnect(); window.removeEventListener("resize", update); };
+  }, []);
+  return { ref, overflows };
+}
 function SourceTableView({ table }: { table: SourceTable }) {
-  const stickyIds = new Set(["1.2", "3.3", "3.11"]);
+  const layout = table.layout ?? "standard";
+  const stickyFirst = table.stickyFirstColumn ?? false;
+  const mobileMode = table.mobileMode ?? (layout === "narrative" ? "cards" : "scroll");
   const groupRows = new Set(table.groupRowIndices ?? []);
-  return <figure className="source-table-figure">
+  const { ref, overflows } = useOverflow();
+  const reduced = useReducedMotion();
+  const tableClass = `source-table layout-${layout}${stickyFirst ? " has-sticky-col" : ""}`;
+  return <figure className={`source-table-figure${mobileMode === "cards" ? " mobile-cards" : ""} layout-${layout}`}>
     <figcaption><strong>{table.title}</strong><span>Sumber: {table.sourcePages}.</span></figcaption>
-    <div className="source-table-scroll">
-      <table className="source-table">
+    <div className="source-table-scroll" ref={ref} tabIndex={mobileMode === "scroll" && overflows ? 0 : undefined}
+      aria-label={mobileMode === "scroll" && overflows ? `${table.title} — dapat digeser secara horizontal` : undefined}>
+      <table className={tableClass}>
         <thead>
           {table.columnGroups ? <tr className="source-table-colgroup">{table.columnGroups.map((group) => <th scope="colgroup" colSpan={group.span} key={group.label}>{group.label}</th>)}</tr> : null}
           <tr>{table.columns.map((column) => <th scope="col" key={column}>{column}</th>)}</tr>
         </thead>
         <tbody>{table.rows.map((row, rowIndex) => groupRows.has(rowIndex)
           ? <tr key={`${table.id}-${rowIndex}`} className="source-table-group" style={{ "--row-index": rowIndex } as React.CSSProperties}><th scope="colgroup" colSpan={table.columns.length}>{row[0]}</th></tr>
-          : <tr key={`${table.id}-${rowIndex}`} style={{ "--row-index": rowIndex } as React.CSSProperties}>{row.map((cell, cellIndex) => cellIndex === 0 && !stickyIds.has(table.id) && cell !== "" ? <th scope="row" key={cellIndex}>{cell}</th> : <td key={cellIndex}>{cell}</td>)}</tr>)}
+          : <tr key={`${table.id}-${rowIndex}`} style={{ "--row-index": rowIndex } as React.CSSProperties}>{row.map((cell, cellIndex) => cellIndex === 0 ? <th scope="row" key={cellIndex}>{cell}</th> : <td key={cellIndex}>{cell}</td>)}</tr>)}
         </tbody>
       </table>
     </div>
+    {mobileMode === "cards" ? <div className="source-table-cards">
+      {table.rows.map((row, rowIndex) => groupRows.has(rowIndex)
+        ? <p key={`${table.id}-g-${rowIndex}`} className="source-card-group">{row[0]}</p>
+        : <dl key={`${table.id}-c-${rowIndex}`} className="source-card">{table.columns.map((column, ci) => <div key={ci} className="source-card-field"><dt className="source-card-label">{column}</dt><dd className="source-card-value">{row[ci] ?? ""}</dd></div>)}</dl>)}
+    </div> : null}
+    {mobileMode === "scroll" && overflows && !reduced ? <p className="source-table-hint" aria-hidden="true">Geser tabel →</p> : null}
     {table.note ? <p className="source-table-note">{table.note}</p> : null}
   </figure>;
 }
