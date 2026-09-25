@@ -206,9 +206,10 @@ function renderMenuItem(menu: PortalMenuItem) {
       </Link>
     );
   }
+  const hasActiveChild = menu.children.some((child) => window.location.pathname === child.path);
   return (
     <div key={menu.name} className="dropdown">
-      <button className="nav-link">{menu.name} </button>
+      <button className={`nav-link${hasActiveChild ? " active" : ""}`} aria-haspopup="true" aria-expanded="false">{menu.name} </button>
       <div
         className="dropdown-panel"
         style={{ maxHeight: 450, overflowY: "auto" }}
@@ -221,7 +222,7 @@ function renderMenuItem(menu: PortalMenuItem) {
         </div>
         <div className="dropdown-list">
           {menu.children.map((child) => (
-            <Link key={child.path} to={child.path}>
+            <Link key={child.path} to={child.path} className={window.location.pathname === child.path ? "active" : undefined} aria-current={window.location.pathname === child.path ? "page" : undefined}>
               {child.name}
             </Link>
           ))}
@@ -249,6 +250,8 @@ function renderMobileItem(
     <div key={menu.name}>
       <button
         data-mobile-parent={menu.name}
+        aria-haspopup="true"
+        aria-expanded={isOpen}
         onClick={() => setOpenSubmenu(isOpen ? null : menu.name)}
       >
         {menu.name} {isOpen ? "▲" : "v"}

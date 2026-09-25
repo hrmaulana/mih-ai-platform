@@ -199,7 +199,8 @@ button {
   transition: 180ms ease;
 }
 
-.dropdown:hover .dropdown-panel {
+.dropdown:hover .dropdown-panel,
+.dropdown:focus-within .dropdown-panel {
   visibility: visible;
   opacity: 1;
   transform: translate(-50%, 0);
