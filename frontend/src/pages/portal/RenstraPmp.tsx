@@ -28,14 +28,17 @@ function Reveal({ children, className = "" }: { children: React.ReactNode; class
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
+    const show = () => element.classList.add("is-visible");
+    // Reveal as soon as any part enters viewport (threshold 0). A high threshold
+    // (e.g. 0.12) never fires for very tall sections on small screens, leaving
+    // the section permanently at opacity:0 on mobile.
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        element.classList.add("is-visible");
-        observer.unobserve(element);
-      }
-    }, { threshold: 0.12 });
+      if (entry.isIntersecting) { show(); observer.unobserve(element); }
+    }, { threshold: 0, rootMargin: "0px 0px -5% 0px" });
     observer.observe(element);
-    return () => observer.disconnect();
+    // Fail-safe: never keep a section hidden even if IntersectionObserver misfires.
+    const fallback = window.setTimeout(() => { if (!element.classList.contains("is-visible")) show(); }, 1600);
+    return () => { observer.disconnect(); window.clearTimeout(fallback); };
   }, []);
   return <div ref={ref} className={`reveal ${className}`}>{children}</div>;
 }
