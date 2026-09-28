@@ -1,0 +1,36 @@
+flowchart LR
+    %% ===== Level 1: Decomposition pprosesus MIH =====
+    RSS["Sumber Berita RSS\n(6 + Economist + Politico)"]
+    SH["SharePoint\n(dokumen PMP)"]
+    PUB["Pengguna Publik"]
+    PEG["Pegawai PMP"]
+    ADM["Administrator / Operator"]
+
+    P1[("P1 Ingest\nrya crawl RSS & rclone dokumen")]
+    P2[("P2 Analisis\nLLM+lexicon · sentimen 3-sumbu · klaster PKPN")]
+    P3[("P3 RAG / Chunking\nworker: chunk + embedding pgvector")]
+    P4[("P4 Author / Auth\nJWT + cookie · RBAC")]
+    P5[("P5 Serve API / Dashboard\nread + chat + playground")]
+
+    D1[("D1 articles\n(early_warn + pkpn)")]
+    D2[("D2 documents\n(PMP Library)")]
+    D3[("D3 chunks / vector")]
+    D4[("D4 users / tokens / logs")]
+
+    RSS -->|"fetch"| P1
+    SH  -->|"rclone"| P1
+    P1  -->|"save"| D1
+    P1  -->|"raw dokumen"| D2
+    D2  -->|"file path"| P3
+    P3  -->|"chunk+embed"| D3
+    D1  -->|"radic data"| P2
+    P2  -->|"skor/klaster"| D1
+    ADM -->|"login/manage"| P4
+    P4  -->|"session/token"| D4
+    PUB -->|"request publik"| P5
+    PEG -->|"request internal / AI"| P5
+    P5  -->|"query"| D1
+    P5  -->|"query vector"| D3
+    P5  -->|"RAG jawan + cite"| PEG
+    P5  -->|"dashboard"| PUB
+    P5  -->|"usage log"| D4

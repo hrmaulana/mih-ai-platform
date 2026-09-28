@@ -1,0 +1,16 @@
+flowchart LR
+    RSS["Sumber Berita RSS\n(6 lokal + Economist + Politico)"]
+    SH["SharePoint Pengetahuan PMP\n(dokumen PMP)"]
+    ADM["Administrator / Operator"]
+    PEG["Pegawai PMP"]
+    PUB["Pengguna Publik"]
+    CORE["Sistem MIH\n(crawl, analisis, RAG, auth, API, dashboard)"]
+    DB[("PostgreSQL 16\narticles · documents · chunks · conversations\n(embedding pgvector)")]
+
+    RSS -->|"fetch berita"| CORE
+    SH  -->|"rclone sync (15 menit)"| CORE
+    CORE -->|"simpan artikel/dokumen"| DB
+    CORE -->|"baca data (RAG + analisis)"| DB
+    CORE -->|"serve dashboard publik"| PUB
+    CORE -->|"serve portal internal / AI"| PEG
+    ADM -->|"menage config & konten"| CORE

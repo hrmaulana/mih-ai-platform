@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DFD — Macro Intelligence Hub</title>
+<style>
+html,body{margin:0;background:#fff;color:#16282c}
+body{font:14px/1.5 "Public Sans",sans-serif;padding:24px}
+#wrap{max-width:1500px;margin:auto}
+h1{font:650 22px Georgia,serif;margin-top:0}
+h2{font:650 17px Georgia,serif;margin:28px 0 4px}
+p.src{color:#56696d;font-size:12px}
+.mermaid{background:#fff;border:1px solid #d5dedd;border-radius:8px;padding:12px;overflow-x:auto}
+</style>
+</head>
+<body>
+<div id="wrap">
+<h1>Data Flow Diagram — Macro Intelligence Hub (MIH)</h1>
+<p class="src">Pipeline crawler → analisis → RAG → API → dashboard. Generate dari arsitektur disposal MIH.</p>
+
+<h2>Level 0 — Context</h2>
+<pre class="mermaid">flowchart LR
+    RSS[&quot;Sumber Berita RSS\n(6 lokal + Economist + Politico)&quot;]
+    SH[&quot;SharePoint Pengetahuan PMP\n(dokumen PMP)&quot;]
+    ADM[&quot;Administrator / Operator&quot;]
+    PEG[&quot;Pegawai PMP&quot;]
+    PUB[&quot;Pengguna Publik&quot;]
+    CORE[&quot;Sistem MIH\n(crawl, analisis, RAG, auth, API, dashboard)&quot;]
+    DB[(&quot;PostgreSQL 16\narticles · documents · chunks · conversations\n(embedding pgvector)&quot;)]
+
+    RSS --&gt;|&quot;fetch berita&quot;| CORE
+    SH  --&gt;|&quot;rclone sync (15 menit)&quot;| CORE
+    CORE --&gt;|&quot;simpan artikel/dokumen&quot;| DB
+    CORE --&gt;|&quot;baca data (RAG + analisis)&quot;| DB
+    CORE --&gt;|&quot;serve dashboard publik&quot;| PUB
+    CORE --&gt;|&quot;serve portal internal / AI&quot;| PEG
+    ADM --&gt;|&quot;menage config &amp; konten&quot;| CORE</pre>
+
+<h2>Level 1 — Decomposition</h2>
+<pre class="mermaid">flowchart LR
+    %% ===== Level 1: Decomposition pprosesus MIH =====
+    RSS[&quot;Sumber Berita RSS\n(6 + Economist + Politico)&quot;]
+    SH[&quot;SharePoint\n(dokumen PMP)&quot;]
+    PUB[&quot;Pengguna Publik&quot;]
+    PEG[&quot;Pegawai PMP&quot;]
+    ADM[&quot;Administrator / Operator&quot;]
+
+    P1[(&quot;P1 Ingest\nrya crawl RSS &amp; rclone dokumen&quot;)]
+    P2[(&quot;P2 Analisis\nLLM+lexicon · sentimen 3-sumbu · klaster PKPN&quot;)]
+    P3[(&quot;P3 RAG / Chunking\nworker: chunk + embedding pgvector&quot;)]
+    P4[(&quot;P4 Author / Auth\nJWT + cookie · RBAC&quot;)]
+    P5[(&quot;P5 Serve API / Dashboard\nread + chat + playground&quot;)]
+
+    D1[(&quot;D1 articles\n(early_warn + pkpn)&quot;)]
+    D2[(&quot;D2 documents\n(PMP Library)&quot;)]
+    D3[(&quot;D3 chunks / vector&quot;)]
+    D4[(&quot;D4 users / tokens / logs&quot;)]
+
+    RSS --&gt;|&quot;fetch&quot;| P1
+    SH  --&gt;|&quot;rclone&quot;| P1
+    P1  --&gt;|&quot;save&quot;| D1
+    P1  --&gt;|&quot;raw dokumen&quot;| D2
+    D2  --&gt;|&quot;file path&quot;| P3
+    P3  --&gt;|&quot;chunk+embed&quot;| D3
+    D1  --&gt;|&quot;radic data&quot;| P2
+    P2  --&gt;|&quot;skor/klaster&quot;| D1
+    ADM --&gt;|&quot;login/manage&quot;| P4
+    P4  --&gt;|&quot;session/token&quot;| D4
+    PUB --&gt;|&quot;request publik&quot;| P5
+    PEG --&gt;|&quot;request internal / AI&quot;| P5
+    P5  --&gt;|&quot;query&quot;| D1
+    P5  --&gt;|&quot;query vector&quot;| D3
+    P5  --&gt;|&quot;RAG jawan + cite&quot;| PEG
+    P5  --&gt;|&quot;dashboard&quot;| PUB
+    P5  --&gt;|&quot;usage log&quot;| D4</pre>
+
+<div id="erderr" style="display:none;background:#fdecea;border:1px solid #c0392b;color:#c0392b;font:12px/1.4 monospace;padding:10px;margin-top:12px;white-space:pre-wrap"></div>
+<script src="assets/mermaid.min.js"></script>
+<script>
+try { mermaid.initialize({startOnLoad:true,theme:'neutral'}); }
+catch (e) { var el=document.getElementById('erderr'); el.style.display='block'; el.textContent='Mermaid init error: '+(e.message||e); }
+</script>
+</div>
+</body>
+</html>
