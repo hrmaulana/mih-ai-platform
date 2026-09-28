@@ -6,10 +6,10 @@ erDiagram
         text token_hash ""
         text scope ""
         integer daily_limit ""
-        timestamp with time zone expires_at ""
-        timestamp with time zone revoked_at ""
-        timestamp with time zone last_used_at ""
-        timestamp with time zone created_at ""
+        timestamptz expires_at ""
+        timestamptz revoked_at ""
+        timestamptz last_used_at ""
+        timestamptz created_at ""
     }
     article_scores {
         bigint id "PK"
@@ -21,7 +21,7 @@ erDiagram
         boolean lantai_diterapkan ""
         text dampak ""
         text sentimen_teks ""
-        ARRAY klaster_pkpn ""
+        array klaster_pkpn ""
         text topik ""
         text alasan ""
         jsonb keyword_highlight ""
@@ -29,7 +29,7 @@ erDiagram
         real confidence ""
         boolean perlu_review_manual ""
         text status ""
-        timestamp with time zone dibuat_at ""
+        timestamptz dibuat_at ""
     }
     articles {
         bigint id "PK"
@@ -41,19 +41,19 @@ erDiagram
         text isi ""
         text ringkasan ""
         text bahasa ""
-        timestamp with time zone terbit_at ""
-        timestamp with time zone diambil_at ""
+        timestamptz terbit_at ""
+        timestamptz diambil_at ""
     }
     chunks {
         bigint id "PK"
         bigint document_id ""
         text content ""
-        USER-DEFINED embedding ""
+        vector embedding ""
         integer page_or_slide ""
         text section_title ""
         integer chunk_index ""
         boolean is_outdated ""
-        timestamp with time zone created_at ""
+        timestamptz created_at ""
     }
     content {
         integer id "PK"
@@ -68,18 +68,18 @@ erDiagram
         text content ""
         text document_url ""
         text document_name ""
-        ARRAY gallery ""
+        array gallery ""
         boolean is_published ""
         integer created_by ""
-        timestamp with time zone created_at ""
-        timestamp with time zone updated_at ""
+        timestamptz created_at ""
+        timestamptz updated_at ""
     }
     conversations {
         integer id "PK"
         integer user_id ""
         text title ""
-        timestamp with time zone created_at ""
-        timestamp with time zone updated_at ""
+        timestamptz created_at ""
+        timestamptz updated_at ""
     }
     documents {
         bigint id "PK"
@@ -91,29 +91,29 @@ erDiagram
         text status ""
         text error_message ""
         integer chunk_count ""
-        timestamp with time zone created_at ""
-        timestamp with time zone updated_at ""
+        timestamptz created_at ""
+        timestamptz updated_at ""
         text source ""
     }
     early_warnings {
         integer id "PK"
-        character varying judul ""
-        character varying sumber ""
+        varchar judul ""
+        varchar sumber ""
         text url ""
         text konten ""
-        timestamp without time zone published_at ""
-        timestamp without time zone fetched_at ""
-        character varying keyword ""
-        character varying sentimen ""
+        timestamp published_at ""
+        timestamp fetched_at ""
+        varchar keyword ""
+        varchar sentimen ""
         numeric sentimen_score ""
-        character varying confidence ""
+        varchar confidence ""
         text ringkasan ""
         numeric lex_score ""
         numeric llm_score ""
         boolean is_alert ""
-        character varying alert_level ""
-        timestamp without time zone created_at ""
-        ARRAY pkpn_clusters ""
+        varchar alert_level ""
+        timestamp created_at ""
+        array pkpn_clusters ""
         integer pkpn_score ""
         boolean pkpn_literal ""
     }
@@ -123,7 +123,7 @@ erDiagram
         text role ""
         text content ""
         jsonb citations ""
-        timestamp with time zone created_at ""
+        timestamptz created_at ""
     }
     reviews {
         bigint id "PK"
@@ -131,9 +131,9 @@ erDiagram
         text reviewer ""
         smallint relevansi ""
         text dampak ""
-        ARRAY klaster_pkpn ""
+        array klaster_pkpn ""
         text catatan ""
-        timestamp with time zone dibuat_at ""
+        timestamptz dibuat_at ""
     }
     usage_logs {
         bigint id "PK"
@@ -144,7 +144,7 @@ erDiagram
         jsonb cited_chunks ""
         text model ""
         integer latency_ms ""
-        timestamp with time zone created_at ""
+        timestamptz created_at ""
     }
     users {
         bigint id "PK"
@@ -153,7 +153,7 @@ erDiagram
         text unit_kerja ""
         text password_hash ""
         boolean is_admin ""
-        timestamp with time zone created_at ""
+        timestamptz created_at ""
     }
     documents ||--o{ chunks : "document_id -> id"
     users ||--o{ api_tokens : "user_id -> id"
