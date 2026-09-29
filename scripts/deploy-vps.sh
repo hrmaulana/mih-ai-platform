@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
-# Deploy MIH ke VPS publik (vps.arthakarya.id). Dipanggil oleh job deploy-vps
-# di workflow Deploy (runner self-hosted label `vps`) atau manual di VPS.
-#
-# Repo persisten di $HOME/mih (bukan checkout per-run). Compose project DIPAKSA
-# "mih" karena stack awal dibuat dengan nama mih — tanpa -p mih, compose akan
-# membuat container/volume baru dan portal lama tetap berjalan.
+# Deploy MIH ke VPS publik (vps.arthakarya.id). Frontend dist dibangun di CI
+# lalu dikirim sebagai artifact ke runner ini; VPS hanya membangun image Nginx.
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -15,12 +11,17 @@ if [ ! -f .env.prod ]; then
   exit 1
 fi
 
+if [ ! -f frontend/dist/index.html ]; then
+  echo "frontend/dist/index.html tidak ditemukan. Deploy harus menerima artefak hasil build dari CI sebelum skrip ini dijalankan." >&2
+  exit 1
+fi
+
 COMPOSE="docker compose -p mih --env-file .env.prod -f docker-compose.prod.yml"
 
 echo "=== deploy VPS di: $DIR ==="
 
-# Build sekuensial per service (sama seperti deploy-prod.sh) + retry: unduhan
-# besar kadang di-reset jaringan.
+# Backend/worker memakai dependency layer yang dapat di-cache. Frontend Dockerfile
+# hanya COPY dist ke nginx; tidak ada npm download/build pada VPS.
 build_service() {
   local svc="$1"
   for i in 1 2 3; do
@@ -42,16 +43,16 @@ build_service worker
 echo "=== $COMPOSE up -d --no-build ==="
 $COMPOSE up -d --no-build
 
-echo "=== verifikasi portal ==="
-# Verifikasi dari DALAM container frontend (kebal proxy & isu localhost runner).
+echo "=== verifikasi portal & Renstra Digital ==="
 portal_ok() {
-  $COMPOSE exec -T frontend wget -q -O /dev/null http://127.0.0.1/ 2>/dev/null
+  $COMPOSE exec -T frontend wget -q -O /dev/null http://127.0.0.1/ 2>/dev/null \
+    && $COMPOSE exec -T frontend wget -q -O /dev/null http://127.0.0.1/renstra-digital 2>/dev/null
 }
 ok=""
 for i in $(seq 1 20); do
   if portal_ok; then
     ok=1
-    echo "portal HTTP 200 (detik ke-$((i * 3)))"
+    echo "portal dan /renstra-digital HTTP 200 (detik ke-$((i * 3)))"
     break
   fi
   sleep 3
