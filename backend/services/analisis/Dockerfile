@@ -1,7 +1,8 @@
 FROM oven/bun:1
 WORKDIR /app
-COPY node_modules ./node_modules
-COPY package.json tsconfig.json ./
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
+COPY tsconfig.json ./
 COPY src/ ./src/
 EXPOSE 3102
 CMD ["bun", "run", "src/index.ts"]
