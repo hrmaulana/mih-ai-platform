@@ -158,30 +158,59 @@ export default function RenstraDigital() {
   const reduced = useReducedMotion();
   const rootRef = useEntranceAnimations(reduced);
   const { progress, active } = useScrollProgress();
+  const navRef = useRef<HTMLDivElement>(null);
+  const activeChapterIndex = Math.max(0, chapters.findIndex(([id]) => id === active));
+  useEffect(() => {
+    const nav = navRef.current;
+    const link = nav?.querySelector<HTMLAnchorElement>(`a[href="#rd-${active}"]`);
+    if (!nav || !link) return;
+    const target = link.offsetLeft - (nav.clientWidth - link.clientWidth) / 2;
+    nav.scrollTo({ left: target, behavior: reduced ? "auto" : "smooth" });
+  }, [active, reduced]);
   const [ikuIndex, setIkuIndex] = useState(0);
   const [unitIndex, setUnitIndex] = useState<number | null>(null);
   const related = useMemo(() => (unitIndex === null ? null : units[unitIndex] ?? null), [unitIndex]);
 
   return (
     <div className="renstra-digital" ref={rootRef}>
-      <nav className="rd-nav" aria-label="Navigasi Renstra Digital">
-        <div className="rd-wrap rd-nav-inner">
-          {chapters.map(([id, label]) => <a key={id} href={`#rd-${id}`} aria-current={active === id ? "location" : undefined}>{label}</a>)}
-          <Link className="rd-compare" to="/renstra-pmp">Bandingkan versi lama</Link>
+      <nav className="rd-nav" aria-label="Navigasi bab Renstra Digital">
+        <div className="rd-nav-top">
+          <div className="rd-wrap rd-nav-inner" ref={navRef}>
+            {chapters.map(([id, label], i) => <a key={id} href={`#rd-${id}`} aria-current={active === id ? "location" : undefined}><span className="rd-nav-number">{String(i + 1).padStart(2, "0")}</span>{label}</a>)}
+            <Link className="rd-compare" to="/renstra-pmp">Versi saat ini ↗</Link>
+          </div>
         </div>
-        <div className="rd-progress" style={{ width: `${progress}%` }} />
+        <div className="rd-progress-track" aria-hidden="true"><div className="rd-progress" style={{ width: `${progress}%` }} /></div>
+        <div className="rd-chapter-state" aria-live="polite"><span>{String(activeChapterIndex + 1).padStart(2, "0")} / {String(chapters.length).padStart(2, "0")}</span><b>{chapters[activeChapterIndex]?.[1]}</b></div>
       </nav>
+      <aside className="rd-story-rail" aria-label="Jalur cerita Renstra Digital" style={{ "--rd-rail-progress": `${progress}%` } as React.CSSProperties}>
+        <span className="rd-rail-caption">ALUR RENSTRA</span>
+        <div className="rd-rail-links">{chapters.map(([id, label], i) => <a key={id} href={`#rd-${id}`} className={active === id ? "is-active" : ""} aria-label={`${String(i + 1).padStart(2, "0")}: ${label}`} aria-current={active === id ? "location" : undefined}><span>{String(i + 1).padStart(2, "0")}</span><b>{label}</b></a>)}</div>
+        <span className="rd-rail-end">AKHIR</span>
+      </aside>
 
       <header className="rd-hero" id="rd-mandat">
         <div className="rd-wrap">
-          <p className="rd-kicker">{renstraMeta.kicker} · Versi digital</p>
-          <h1>Merancang arah.<br/>Mengawal perubahan.</h1>
-          <p className="rd-hero-copy">Kedeputian Perencanaan Makro Pembangunan menghubungkan analisis makro, kebijakan lintas sektor, dan pengendalian pembangunan—agar arah nasional diterjemahkan menjadi rencana yang konsisten, terukur, dan adaptif.</p>
+          <p className="rd-kicker">{renstraMeta.kicker} <span> / EDISI DIGITAL</span></p>
+          <div className="rd-hero-grid">
+            <div className="rd-hero-main">
+              <p className="rd-hero-index">RENSTRA <b>2025—2029</b></p>
+              <h1>Merancang arah.<br/><em>Mengawal perubahan.</em></h1>
+              <p className="rd-hero-copy">Bagaimana analisis makro menjadi arah kebijakan, diselaraskan lintas sektor, lalu dikawal hingga hasil pembangunan?</p>
+              <a className="rd-hero-cta" href="#rd-titik-berangkat">Mulai membaca <span aria-hidden="true">↓</span></a>
+            </div>
+            <aside className="rd-hero-aside" aria-label="Inti mandat">
+              <span className="rd-aside-label">MANDAT INTI</span>
+              <p>Menghubungkan <b>analisis makro</b>, <b>kebijakan lintas sektor</b>, dan <b>pengendalian pembangunan</b>.</p>
+              <span className="rd-aside-mark" aria-hidden="true">PMP<span>↗</span></span>
+            </aside>
+          </div>
           <div className="rd-goals" data-rd-reveal>
             {renstraMeta.goals.map((goal, i) => <article className="rd-goal" data-rd-animate key={goal}><b>Tujuan {i + 1}</b>{goal}</article>)}
           </div>
-          <div className="rd-flow" data-rd-reveal aria-label="Siklus perencanaan dan pengendalian pembangunan">
-            {["Analisis makro", "Arah kebijakan", "Rencana lintas sektor", "Pelaksanaan", "Pemantauan & evaluasi"].map((step, i) => <div className="rd-flow-item" data-rd-animate key={step}><b>0{i + 1}</b>{step}</div>)}
+          <div className="rd-cycle" data-rd-reveal aria-label="Siklus perencanaan dan pengendalian pembangunan">
+            <div className="rd-cycle-intro"><span>SIKLUS KERJA</span><b>01—05</b></div>
+            <div className="rd-cycle-track">{["Analisis makro", "Arah kebijakan", "Rencana lintas sektor", "Pelaksanaan", "Pemantauan & evaluasi"].map((step, i) => <div className="rd-cycle-step" data-rd-animate key={step}><span>0{i + 1}</span><b>{step}</b>{i < 4 && <i aria-hidden="true">→</i>}</div>)}</div>
           </div>
           <p className="rd-source">Periode 2025–2029 · Tahap awal RPJPN 2025–2045 · <a href={renstraMeta.pdf} target="_blank" rel="noreferrer">Buka dokumen Renstra</a></p>
         </div>
@@ -189,7 +218,7 @@ export default function RenstraDigital() {
 
       <section className="rd-section" id="rd-titik-berangkat">
         <div className="rd-wrap">
-          <p className="rd-eyebrow">01 / Fondasi</p><h2>Ada kemajuan. Ada pekerjaan yang perlu dilanjutkan.</h2>
+          <div className="rd-section-heading"><p className="rd-eyebrow">01 <span>/ FONDASI</span></p><h2>Ada kemajuan.<br/><em>Ada pekerjaan yang perlu dilanjutkan.</em></h2></div>
           <p className="rd-lead">Pemulihan ekonomi dan perbaikan sejumlah indikator menjadi pijakan. Evaluasi periode sebelumnya sekaligus menegaskan pentingnya memperkuat hubungan antara output, outcome, dan sasaran pembangunan.</p>
           <div className="rd-grid" data-rd-reveal>
             <article className="rd-card" data-rd-animate><strong className="rd-card-number">5,03%</strong><h3>Pertumbuhan ekonomi</h3><p>Capaian nasional pada 2024 setelah pemulihan pascapandemi.</p></article>
@@ -203,7 +232,7 @@ export default function RenstraDigital() {
 
       <section className="rd-section" id="rd-tantangan">
         <div className="rd-wrap">
-          <p className="rd-eyebrow">02 / Diagnosis</p><h2>Lingkungan berubah; perencanaan harus lebih adaptif.</h2>
+          <div className="rd-section-heading"><p className="rd-eyebrow">02 <span>/ DIAGNOSIS</span></p><h2>Lingkungan berubah.<br/><em>Perencanaan harus lebih adaptif.</em></h2></div>
           <p className="rd-lead">Ketidakpastian geopolitik, perlambatan global, perubahan iklim, transformasi digital, tekanan fiskal, dan tantangan sosial-ekonomi menambah kompleksitas pembangunan 2025–2029.</p>
           <div className="rd-grid" data-rd-reveal>
             <article className="rd-card" data-rd-animate><h3>Transformasi struktural</h3><p>Produktivitas, nilai tambah industri, pemerataan wilayah, dan penciptaan kerja produktif perlu terus didorong.</p></article>
@@ -218,9 +247,9 @@ export default function RenstraDigital() {
 
       <section className="rd-section" id="rd-respons">
         <div className="rd-wrap">
-          <p className="rd-eyebrow">03 / Pilihan strategi</p><h2>Fokus pada integrasi, respons, dan transformasi.</h2>
+          <div className="rd-section-heading"><p className="rd-eyebrow">03 <span>/ PILIHAN STRATEGI</span></p><h2>Fokus pada integrasi,<br/><em>respons, dan transformasi.</em></h2></div>
           <p className="rd-lead">Strategi PMP menghubungkan analisis dengan keputusan, memastikan konsistensi rencana dengan anggaran, serta menjaga ruang respons terhadap isu nasional.</p>
-          <div className="rd-grid" data-rd-reveal>
+          <div className="rd-strategy-list" data-rd-reveal>
             <article className="rd-card" data-rd-animate><h3>Rumuskan arah makro</h3><p>Susun kerangka ekonomi makro nasional dan daerah serta postur makro fiskal yang diperbarui mengikuti kondisi terkini.</p></article>
             <article className="rd-card" data-rd-animate><h3>Selaraskan rencana</h3><p>Jaga cascading sasaran dan konsistensi RPJPN, RPJMN, RKP, Renstra K/L, serta perencanaan pusat-daerah.</p></article>
             <article className="rd-card" data-rd-animate><h3>Percepat transformasi</h3><p>Dorong agenda hilirisasi, produktivitas, ekonomi hijau/biru/oranye, dan prakarsa lintas sektor.</p></article>
@@ -233,7 +262,7 @@ export default function RenstraDigital() {
 
       <section className="rd-section" id="rd-pelaksanaan">
         <div className="rd-wrap">
-          <p className="rd-eyebrow">04 / Mesin pelaksanaan</p><h2>Enam unit, satu rantai kerja.</h2>
+          <div className="rd-section-heading"><p className="rd-eyebrow">04 <span>/ MESIN PELAKSANAAN</span></p><h2>Enam unit.<br/><em>Satu rantai kerja.</em></h2></div>
           <p className="rd-lead">Setiap unit membawa keahlian yang berbeda; proses bisnis menyatukannya dari analisis dan perumusan kebijakan hingga evaluasi dan perbaikan.</p>
           <div className="rd-pills" role="group" aria-label="Pilih unit kerja">{units.map((unit, i) => <button className="rd-pill" key={unit.key} aria-pressed={unitIndex === i} onClick={() => setUnitIndex(unitIndex === i ? null : i)}>{unit.name}</button>)}</div>
           {related ? <div className="rd-callout"><b>{related.name}.</b> {related.description}</div> : <div className="rd-callout">Pilih unit untuk melihat fokus kerjanya. Seluruh unit berkontribusi pada siklus perencanaan dan pengendalian bersama.</div>}
@@ -245,7 +274,7 @@ export default function RenstraDigital() {
 
       <section className="rd-section" id="rd-hasil">
         <div className="rd-wrap">
-          <p className="rd-eyebrow">05 / Rantai hasil</p><h2>Dari sasaran bersama ke ukuran kinerja.</h2>
+          <div className="rd-section-heading"><p className="rd-eyebrow">05 <span>/ RANTAI HASIL</span></p><h2>Dari sasaran bersama<br/><em>ke ukuran kinerja.</em></h2></div>
           <p className="rd-lead">Pohon kinerja menghubungkan sasaran kementerian dengan sasaran PMP. Empat IKU memberi ukuran yang dapat diikuti sepanjang 2025–2029.</p>
           <div className="rd-tree" data-rd-reveal>{treeColumns.map((column) => <div className="rd-tree-col" data-rd-animate key={column.title}><h3>{column.title}</h3>{column.nodes.map((node) => <div className="rd-tree-node" key={node.id}>{node.text}</div>)}</div>)}</div>
           <div className="rd-iku-tabs" role="group" aria-label="Pilih indikator kinerja">{iku.map((item, i) => <button key={item.name} onClick={() => setIkuIndex(i)} aria-pressed={ikuIndex === i}>{item.name}</button>)}</div>
@@ -257,7 +286,7 @@ export default function RenstraDigital() {
 
       <section className="rd-section" id="rd-dukungan">
         <div className="rd-wrap">
-          <p className="rd-eyebrow">06 / Dukungan pelaksanaan</p><h2>Target perlu ditopang kapasitas dan sumber daya.</h2>
+          <div className="rd-section-heading"><p className="rd-eyebrow">06 <span>/ DUKUNGAN PELAKSANAAN</span></p><h2>Target perlu ditopang<br/><em>kapasitas dan sumber daya.</em></h2></div>
           <div className="rd-grid" data-rd-reveal>
             <article className="rd-card" data-rd-animate><strong className="rd-card-number">{sdmGapTotal}</strong><h3>Kesenjangan kebutuhan SDM</h3><p>Gap kebutuhan menurut Analisis Jabatan dan Analisis Beban Kerja pada tabel sumber.</p></article>
             <article className="rd-card" data-rd-animate><strong className="rd-card-number">{units.length}</strong><h3>Unit kerja</h3><p>Enam unit dengan peran yang saling melengkapi dalam satu mandat makro.</p></article>
