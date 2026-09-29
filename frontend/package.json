@@ -13,6 +13,7 @@
     "@fluentui/react-components": "^9.74.7",
     "@fontsource/inter": "^5.3.0",
     "@tailwindcss/vite": "^4.3.3",
+    "animejs": "^4.5.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-force-graph-2d": "^1.29.1",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   Routes,
   Route,
@@ -28,6 +28,7 @@ import PortalService from "./pages/portal/PortalService";
 import PortalDashboard from "./pages/portal/PortalDashboard";
 import EarlyWarning from "./pages/portal/EarlyWarning";
 import RenstraPmp from "./pages/portal/RenstraPmp";
+const RenstraDigital = lazy(() => import("./pages/portal/RenstraDigital"));
 import { externalDashboards, portalImages } from "./data/portal";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -292,6 +293,7 @@ export default function App() {
           <Route path="/layanan/:slug" element={<ServiceRoute />} />
           <Route path="/dashboard/early-warning" element={<EarlyWarning />} />
           <Route path="/renstra-pmp" element={<RenstraPmp />} />
+          <Route path="/renstra-digital" element={<Suspense fallback={<div className="p-8">Memuat Renstra Digital…</div>}><RenstraDigital /></Suspense>} />
           <Route path="/dashboard/:slug" element={<DashboardRoute />} />
         </Route>
         <Route path="/login" element={<Login onLogin={setUser} />} />
@@ -319,6 +321,7 @@ export default function App() {
         <Route path="/layanan/:slug" element={<ServiceRoute />} />
         <Route path="/dashboard/early-warning" element={<EarlyWarning />} />
         <Route path="/renstra-pmp" element={<RenstraPmp />} />
+        <Route path="/renstra-digital" element={<Suspense fallback={<div className="p-8">Memuat Renstra Digital…</div>}><RenstraDigital /></Suspense>} />
         <Route path="/dashboard/:slug" element={<DashboardRoute />} />
       </Route>
 

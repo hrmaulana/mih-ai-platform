@@ -712,7 +712,8 @@ export const portalMenus: PortalMenuItem[] = [
     children: [
       { name: "Berita", path: "/berita" },
       { name: "Publikasi", path: "/publikasi" },
-      { name: "Renstra PMP 2025–2029", path: "/renstra-pmp" }
+      { name: "Renstra PMP 2025–2029", path: "/renstra-pmp" },
+      { name: "Renstra Digital", path: "/renstra-digital" }
     ],
   },
   {
