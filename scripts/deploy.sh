@@ -47,9 +47,11 @@ build_service() {
 build_service backend
 build_service frontend
 build_service worker
+build_service analisis-service
+build_service artikel-service
 
-echo "=== docker compose up -d --no-build ==="
-docker compose up -d --no-build
+echo "=== docker compose up -d --no-build db backend worker frontend analisis-service artikel-service ==="
+docker compose up -d --no-build db backend worker frontend analisis-service artikel-service
 
 echo "=== verifikasi portal ==="
 # Verifikasi UTAMA lewat `docker compose exec` ke dalam container frontend:

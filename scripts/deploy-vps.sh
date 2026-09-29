@@ -45,9 +45,13 @@ build_service() {
 build_service backend
 build_service frontend
 build_service worker
+build_service analisis-service
+build_service artikel-service
 
-echo "=== $COMPOSE up -d --no-build ==="
-$COMPOSE up -d --no-build
+# seed shares the backend image and is a one-shot profile service; do not start it
+# as part of up. It is not needed for Early Warning/dashboard runtime.
+echo "=== $COMPOSE up -d --no-build db backend worker frontend analisis-service artikel-service ==="
+$COMPOSE up -d --no-build db backend worker frontend analisis-service artikel-service
 
 echo "=== verifikasi portal & Renstra Digital ==="
 portal_ok() {
