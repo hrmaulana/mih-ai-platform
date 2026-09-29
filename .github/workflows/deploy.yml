@@ -11,15 +11,55 @@ concurrency:
   group: deploy
   cancel-in-progress: false
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
+  build-frontend-artifact:
+    name: Build frontend artifact on GitHub
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          if-no-files-found: error
+          retention-days: 7
+
   deploy-arthakarya:
     name: Deploy ke Arthakarya (10.2.17.123)
     runs-on: self-hosted
     timeout-minutes: 60
+    needs: build-frontend-artifact
     if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
     steps:
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend-dist
+          run-id: ${{ github.event.workflow_run.id || github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Perbarui repo di server
         run: git -C "$HOME/mih" pull --ff-only
+      - name: Pasang frontend dist hasil CI
+        run: mkdir -p "$HOME/mih/frontend/dist" && cp -a frontend-dist/. "$HOME/mih/frontend/dist/"
       - name: Build & restart stack
         run: bash "$HOME/mih/scripts/deploy.sh"
 
@@ -29,9 +69,19 @@ jobs:
     # hanya cocok dengan runner ini — job tidak akan mendarat di Arthakarya.
     runs-on: vps
     timeout-minutes: 60
+    needs: build-frontend-artifact
     if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
     steps:
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend-dist
+          run-id: ${{ github.event.workflow_run.id || github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Perbarui repo di VPS
         run: git -C "$HOME/mih" pull --ff-only
+      - name: Pasang frontend dist hasil CI
+        run: mkdir -p "$HOME/mih/frontend/dist" && cp -a frontend-dist/. "$HOME/mih/frontend/dist/"
       - name: Build & restart stack
         run: bash "$HOME/mih/scripts/deploy-vps.sh"

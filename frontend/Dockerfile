@@ -1,14 +1,5 @@
-# Build static frontend assets in-image so deployment does not depend on a
-# locally generated (gitignored) frontend/dist directory.
-FROM node:22-alpine AS build
-WORKDIR /app
-
-COPY package.json package-lock.json ./
-RUN npm ci
-
-COPY . .
-RUN npm run build
-
+# Frontend assets are built in CI and transferred to deploy runners as an
+# artifact. Production image assembly must not download npm dependencies on VPS.
 FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf

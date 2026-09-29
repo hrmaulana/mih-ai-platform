@@ -69,9 +69,8 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      # Konvensi proyek: npm install (sama dengan Dockerfile frontend).
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - name: Lint
         run: npm run lint
       - name: Build
@@ -82,6 +81,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Build frontend assets for Docker context
+        working-directory: frontend
+        run: npm run build
       - name: Siapkan .env kosong untuk compose
         run: touch .env
       - name: Build semua image (validasi Dockerfile)
