@@ -8,7 +8,8 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 # --- Safety gates ---
 [[ "$(hostname -s)" == keuanganpmp ]] || { echo "ERR: run on office keuanganpmp only" >&2; exit 1; }
 # Require a recent backup with on-disk encrypted copy present as pre-change snapshot.
-SNAP=$(ls -t /var/backups/mih-encrypted/mih-office-*.gpg 2>/dev/null | head -1 || true)
+SNAP=$(ls -t /var/backups/mih-encrypted/mih-office-*.gpg \
+           /home/hrmaulana/backups/mih-encrypted/mih-office-*.gpg 2>/dev/null | head -1 || true)
 [[ -n "$SNAP" ]] || { echo "ERR: no encrypted backup snapshot present; abort" >&2; exit 1; }
 echo "Pre-change backup snapshot: $SNAP"
 
