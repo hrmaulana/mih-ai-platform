@@ -16,12 +16,43 @@ import os
 import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
-from threading import Thread
+from threading import Thread, Lock
 from urllib.parse import urlparse
 
-from db import connect, set_status
+from db import connect
 
 _start_time = time.monotonic()
+_last_heartbeat = None
+_worker_lock = Lock()
+_worker_events = {"last_scan": None, "last_process": None, "last_error": None,
+                  "last_reconnect": None, "last_success": None,
+                  "last_error_type": None, "error_active": False}
+
+
+def record_worker_event(event: str, error: Exception | None = None):
+    """Hanya loop bisnis melaporkan kemajuan; jangan simpan path/teks error."""
+    global _last_heartbeat
+    with _worker_lock:
+        _last_heartbeat = time.monotonic()
+        if "last_" + event in _worker_events:
+            _worker_events["last_" + event] = time.time()
+        if event == "error":
+            _worker_events["last_error_type"] = type(error).__name__
+            _worker_events["error_active"] = True
+        elif event == "success":
+            _worker_events["error_active"] = False
+
+
+def worker_snapshot():
+    with _worker_lock:
+        state = dict(_worker_events)
+        age = None if _last_heartbeat is None else max(0, time.monotonic() - _last_heartbeat)
+    default_stale = max(300, int(os.environ.get("INGEST_INTERVAL_SEC", "30")) * 3)
+    stale_after = float(os.environ.get("WORKER_STALE_SEC", str(default_stale)))
+    state["heartbeat_age_sec"] = age
+    state["status"] = ("stale" if age is None or age > stale_after else
+                       "degraded" if state["error_active"] else "ok")
+    return state
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -84,21 +115,32 @@ class DocumentAPIHandler(BaseHTTPRequestHandler):
     # Handlers
     # ------------------------------------------------------------------
     def _handle_health(self):
-        conn = self._new_conn()
+        conn = None
+        pending = None
+        db_ok = False
         try:
+            conn = self._new_conn()
             row = conn.execute(
                 "SELECT COUNT(*) AS n FROM documents WHERE status='pending'"
             ).fetchone()
             pending = row["n"]
+            db_ok = True
+        except Exception:
+            pass  # Health publik tidak boleh membocorkan error DB atau kredensial.
         finally:
-            conn.close()
+            if conn is not None:
+                conn.close()
 
         uptime = int(time.monotonic() - _start_time)
+        worker = worker_snapshot()
+        stale = worker["status"] != "ok" or not db_ok
         self._respond_json({
-            "status": "ok",
+            "status": "degraded" if stale else "ok",
             "uptime": uptime,
             "pending": pending,
-        })
+            "db": "ok" if db_ok else "unavailable",
+            "worker": worker["status"],
+        }, 503 if stale else 200)
 
     def _handle_status(self):
         conn = self._new_conn()
@@ -109,6 +151,7 @@ class DocumentAPIHandler(BaseHTTPRequestHandler):
             summary = {r["status"]: r["n"] for r in rows}
         finally:
             conn.close()
+        summary["_worker"] = worker_snapshot()
         self._respond_json(summary)
 
     def _handle_retry(self, doc_id):
@@ -126,8 +169,14 @@ class DocumentAPIHandler(BaseHTTPRequestHandler):
                     409,
                 )
                 return
-            set_status(conn, doc_id, "pending")
+            retried = conn.execute(
+                "UPDATE documents SET status='pending', error_message=NULL, updated_at=now() "
+                "WHERE id=%s AND status='failed' RETURNING id", (doc_id,),
+            ).fetchone()
             conn.commit()
+            if not retried:
+                self._respond_json({"error": "status dokumen berubah; retry dibatalkan"}, 409)
+                return
             self._respond_json({
                 "status": "ok",
                 "message": f"dokumen {doc_id} dijadwalkan ulang",
@@ -157,7 +206,7 @@ class DocumentAPIHandler(BaseHTTPRequestHandler):
     # Logging (ringkas)
     # ------------------------------------------------------------------
     def log_message(self, fmt, *args):
-        print(f"[api] {args[0]} {args[1]} {args[2]}")
+        print("[api] " + (fmt % args))
 
 
 # ------------------------------------------------------------------

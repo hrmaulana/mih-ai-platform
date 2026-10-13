@@ -15,7 +15,7 @@ class FakeConn:
 
     def execute(self, sql, params=None):
         self.calls.append((sql, params))
-        result = SimpleNamespace(fetchone=lambda: None, fetchall=lambda: self._fetchall_result)
+        result = SimpleNamespace(fetchone=lambda: {"id": 1} if sql.startswith("INSERT INTO documents") else None, fetchall=lambda: self._fetchall_result)
         return result
 
     def commit(self):
@@ -61,7 +61,7 @@ def test_drive_sync_panggil_rclone(monkeypatch, tmp_path):
     monkeypatch.delenv("RCLONE_CONFIG", raising=False)
     assert ingest.drive_sync() is True
     cmd = calls[0]
-    assert cmd[0] == "rclone" and cmd[1] == "sync"
+    assert cmd[0] == "rclone" and cmd[1] == "copy"
     assert "gdrive:folder-rag" in cmd
     assert str(tmp_path) in cmd
     assert "--include" in cmd
@@ -86,7 +86,7 @@ def test_drive_sync_raise_saat_rclone_gagal(monkeypatch, tmp_path):
         ingest.drive_sync()
 
 
-def test_prune_removed_hapus_hanya_file_hilang(tmp_path):
+def test_prune_removed_tidak_menghapus_file_hilang(tmp_path):
     ada = tmp_path / "ada.pdf"
     ada.write_bytes(b"x")
     conn = FakeConn([
@@ -94,11 +94,9 @@ def test_prune_removed_hapus_hanya_file_hilang(tmp_path):
         {"id": 2, "file_path": str(tmp_path / "hilang.pdf")},
     ])
     n = ingest.prune_removed(conn)
-    assert n == 1
-    sql, params = conn.calls[0]  # SELECT hanya row source=drive
-    assert "source=%s" in sql and params[0] == "drive"
-    deletes = [c for c in conn.calls if c[0].startswith("DELETE FROM documents")]
-    assert deletes[0][1] == (2,)
+    assert n == 0
+    assert not conn.calls
+
 
 
 def test_maybe_drive_sync_interval_belum_lewat(monkeypatch):
@@ -118,6 +116,6 @@ def test_maybe_drive_sync_interval_lewat(monkeypatch):
     monkeypatch.setattr(ingest, "prune_removed", lambda conn: (ran.__setitem__("prune", ran["prune"] + 1) or 0))
     monkeypatch.setattr(ingest, "scan_dir", lambda conn, d: 0)
     last = ingest.maybe_drive_sync(object(), 0, 0)  # interval 0 -> selalu sync
-    assert ran["drive"] == 1 and ran["prune"] == 1
+    assert ran["drive"] == 1 and ran["prune"] == 0
     ingest.maybe_drive_sync(object(), last, 0)
     assert ran["drive"] == 2

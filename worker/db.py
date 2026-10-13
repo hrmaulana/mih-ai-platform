@@ -9,7 +9,12 @@ SUPPORTED_EXTENSIONS = {"pptx", "pdf", "docx"}
 
 
 def connect():
-    return psycopg.connect(os.environ["DATABASE_URL"], row_factory=dict_row)
+    # Transaksi hanya dibuka eksplisit ketika claim/proses satu dokumen.
+    # Timeout probe/query DB tidak membatasi waktu parsing/embedding Python.
+    return psycopg.connect(
+        os.environ["DATABASE_URL"], row_factory=dict_row, autocommit=True,
+        connect_timeout=10, options="-c statement_timeout=15000",
+    )
 
 
 def file_path_ext(filename: str) -> str:
@@ -23,12 +28,13 @@ def ensure_raw_document(conn, filename: str, file_path: str, sha256: str, file_t
     exists = conn.execute("SELECT 1 FROM documents WHERE sha256=%s", (sha256,)).fetchone()
     if exists:
         return False
-    conn.execute(
+    row = conn.execute(
         "INSERT INTO documents (filename, file_type, file_extension, sha256, file_path, status, source) "
-        "VALUES (%s, %s, %s, %s, %s, 'pending', %s)",
+        "VALUES (%s, %s, %s, %s, %s, 'pending', %s) "
+        "ON CONFLICT (sha256) DO NOTHING RETURNING id",
         (filename, file_type, file_path_ext(filename), sha256, file_path, source),
-    )
-    return True
+    ).fetchone()
+    return row is not None
 
 
 def get_pending(conn, limit: int = 10):

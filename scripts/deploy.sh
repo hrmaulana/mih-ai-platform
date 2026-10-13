@@ -1,98 +1,80 @@
 #!/usr/bin/env bash
-# Deploy MIH di server Arthakarya: build ulang image & restart stack docker.
-# Dipanggil oleh workflow Deploy (GitHub Actions, self-hosted runner) atau manual.
+# Office only. Default is read-only preflight; apply requires explicit authorization.
+# Run the tested script from the runner checkout, NOT an unreviewed host revision.
 set -euo pipefail
-
-# Proxy korporat wajib untuk semua unduhan saat build (bun/pip/npm). Server tidak
-# punya internet langsung; tanpa proxy, RUN steps hang selamanya menunggu koneksi.
+DEPLOY_DIR=/home/hrmaulana/mih
+GUARD="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/deploy-office-preflight.py"
+fail() { printf 'Deployment refused: %s\n' "$1" >&2; exit 1; }
+[[ $# -ge 2 && $# -le 3 ]] || fail 'usage: deploy.sh TESTED_SHA FRONTEND_ARTIFACT [--apply]'
+SHA=$1
+ARTIFACT=$2
+MODE=${3:---preflight}
+[[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || fail 'full tested SHA required'
+[[ "$MODE" == --preflight || "$MODE" == --apply ]] || fail 'unknown mode'
+[[ "$(hostname -s)" == keuanganpmp ]] || fail 'wrong host (office keuanganpmp required)'
+cd "$DEPLOY_DIR"
+[[ "$(pwd -P)" == "$DEPLOY_DIR" ]] || fail 'deployment directory symlink mismatch'
+[[ "$(git rev-parse --show-toplevel)" == "$DEPLOY_DIR" ]] || fail 'repository root mismatch'
+check_clean() {
+  local status
+  status=$(git status --porcelain=v1 --untracked-files=all) || fail 'git status check failed'
+  [[ -z "$status" ]] || fail 'dirty deployment checkout; preserve/reconcile files manually'
+}
+check_clean
+[[ -f .env.prod && ! -L .env.prod ]] || fail 'production env file missing or symlink'
+python3 "$GUARD" --sha "$SHA" --artifact "$ARTIFACT" --artifact-only
+# First validate the current storage identity, before changing the checkout.
+python3 "$GUARD"
+if [[ "$MODE" == --preflight ]]; then
+  [[ "$(git rev-parse HEAD)" == "$SHA" ]] || fail 'preflight requires current checkout at tested SHA (no checkout performed)'
+  printf 'Read-only office deployment preflight OK; no changes applied\n'
+  exit 0
+fi
+[[ "${MIH_OFFICE_DEPLOY_ENABLED:-false}" == true ]] || fail 'office deployment enable gate is closed'
+# Serialize all script invocations on this host (CI concurrency alone is not enough).
+exec 9>"/home/hrmaulana/.mih-office-deploy.lock"
+flock -n 9 || fail 'another office deployment is active'
+check_clean
+# Fetch only the tested object, never a moving branch and never force-clean the repo.
+# Suppress transport output: private remote URLs may contain credentials.
+git fetch --no-tags origin "$SHA" >/dev/null 2>&1 || fail 'fetch tested SHA failed (transport details suppressed)'
+[[ "$(git rev-parse FETCH_HEAD)" == "$SHA" ]] || fail 'fetched revision mismatch'
+git checkout --detach "$SHA" >/dev/null 2>&1 || fail 'exact checkout failed; reconcile manually'
+[[ "$(git rev-parse HEAD)" == "$SHA" ]] || fail 'checked-out revision mismatch'
+check_clean
+# Revalidate the candidate compose after checkout; no build/up before this passes.
+python3 "$GUARD"
+python3 "$GUARD" --sha "$SHA" --artifact "$ARTIFACT" --artifact-only
+[[ -d frontend && ! -L frontend && ! -L frontend/dist ]] || fail 'frontend artifact destination is unsafe'
+INCOMING=$(mktemp -d "$DEPLOY_DIR/frontend/.office-dist.XXXXXX")
+trap 'if [[ -n "${INCOMING:-}" && -d "$INCOMING" ]]; then rm -rf -- "$INCOMING"; fi' EXIT
+cp -a "$ARTIFACT/." "$INCOMING/"
+python3 "$GUARD" --sha "$SHA" --artifact "$INCOMING" --artifact-only
+if [[ -e frontend/dist ]]; then
+  PREVIOUS=$(mktemp -d /tmp/mih-previous-dist.XXXXXX)
+  mv frontend/dist "$PREVIOUS/dist"
+fi
+mv "$INCOMING" frontend/dist
+INCOMING=
+COMPOSE=(docker compose -p mih --env-file .env.prod -f docker-compose.prod.yml -f docker-compose.office.yml)
+# Backend/worker dependencies still use the approved office proxy. Frontend is COPY dist only.
 export HTTP_PROXY=http://proxy.bappenas.go.id:8080
 export HTTPS_PROXY=http://proxy.bappenas.go.id:8080
 export NO_PROXY=localhost,127.0.0.1
-
-# Direktori repo deploy di server (clone git dari GitHub). Jangan pernah taruh .env di git.
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$DIR"
-
-echo "=== deploy di: $DIR ==="
-
-# Apply idempotent DB migrations before starting the upgraded backend.
-for migration in db/migrations/002_early_warnings.sql db/migrations/003_early_warnings_clusters.sql db/migrations/004_pantau_berita_pkpn.sql; do
-  echo "=== apply migration $migration ==="
-  docker compose exec -T db psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-mih}" -d "${POSTGRES_DB:-mih}" < "$migration"
+SERVICES=(backend frontend worker analisis-service artikel-service)
+for service in "${SERVICES[@]}"; do
+  "${COMPOSE[@]}" build --build-arg HTTP_PROXY --build-arg HTTPS_PROXY --build-arg NO_PROXY "$service"
 done
-
-# Build SEKUSENSIAL per service. Build paralel (default compose) memenuhi proxy
-# korporat sehingga unduhan wheel/npm/bun saling berebut & sering reset koneksi.
-# Retry per service karena proxy kadang me-reset unduhan besar.
-build_service() {
-  local svc="$1"
-  for i in 1 2 3 4 5; do
-    echo "=== docker compose build $svc (attempt $i) ==="
-    # --build-arg proxy: BuildKit auto-inject ini ke env RUN steps, jadi unduhan
-    # bun/pip/npm pasti lewat proxy walau env client kebetulan tidak ter-set.
-    if docker compose build \
-        --build-arg HTTP_PROXY=http://proxy.bappenas.go.id:8080 \
-        --build-arg HTTPS_PROXY=http://proxy.bappenas.go.id:8080 \
-        --build-arg NO_PROXY=localhost,127.0.0.1 \
-        "$svc"; then
-      return 0
-    fi
-    echo "build $svc gagal attempt $i, coba lagi dalam 15s..."
-    sleep 15
-  done
-  echo "build $svc gagal 5x berturut-turut — periksa log di atas." >&2
-  return 1
-}
-
-build_service backend
-build_service frontend
-build_service worker
-build_service analisis-service
-build_service artikel-service
-
-echo "=== docker compose up -d --no-build db backend worker frontend analisis-service artikel-service ==="
-docker compose up -d --no-build db backend worker frontend analisis-service artikel-service
-
-echo "=== verifikasi portal ==="
-# Verifikasi UTAMA lewat `docker compose exec` ke dalam container frontend:
-# akurat walau runner CI berjalan di dalam container (localhost != host) dan
-# kebal proxy korporat (tidak lewat jaringan host sama sekali).
-# nginx:alpine punya busybox wget. Fallback: curl dari host dengan proxy dimatikan.
-portal_ok() {
-  docker compose exec -T frontend wget -q -O /dev/null http://127.0.0.1/ 2>/dev/null \
-    || curl -sf --noproxy "*" --max-time 5 -o /dev/null http://127.0.0.1:8080/
-}
-ok=""
-for i in $(seq 1 20); do
-  if portal_ok; then
-    ok=1
-    echo "portal HTTP 200 (detik ke-$((i * 3)))"
-    break
+# Database/seed never recreated; migrations are a separate reviewed backup-gated action.
+python3 "$GUARD"
+"${COMPOSE[@]}" up -d --no-build --no-deps "${SERVICES[@]}"
+for attempt in {1..20}; do
+  if "${COMPOSE[@]}" exec -T frontend wget -q -O /dev/null http://127.0.0.1/ \
+      && "${COMPOSE[@]}" exec -T frontend wget -q -O /dev/null http://127.0.0.1/renstra-digital \
+      && "${COMPOSE[@]}" exec -T backend bun -e 'for (const path of ["/api/early-warning/summary", "/api/pantau-berita/tren"]) { const r = await fetch("http://127.0.0.1:3000" + path); if (r.status !== 401) process.exit(1); }'; then
+    printf 'Office deployed SHA %s; portal/routes respond; authenticated business acceptance still required\n' "$SHA"
+    exit 0
   fi
   sleep 3
 done
-if [ -z "$ok" ]; then
-  echo "portal tidak responsif dalam 60s — status container:" >&2
-  docker compose ps >&2
-  docker compose logs --tail 30 frontend >&2
-  exit 1
-fi
-
-api_ok() {
-  docker compose -p mih --env-file .env.prod -f docker-compose.prod.yml exec -T backend bun -e 'const r = await fetch("http://127.0.0.1:3000/api/early-warning/summary"); process.exit(r.status === 401 ? 0 : 1)' 2>/dev/null \
-    && docker compose -p mih --env-file .env.prod -f docker-compose.prod.yml exec -T backend bun -e 'const r = await fetch("http://127.0.0.1:3000/api/pantau-berita/tren"); process.exit(r.status === 401 ? 0 : 1)' 2>/dev/null
-}
-api_ready=""
-for i in $(seq 1 20); do
-  if api_ok; then api_ready=1; echo "API Early Warning & Pantau Berita aktif"; break; fi
-  sleep 3
-done
-if [ -z "$api_ready" ]; then
-  echo "API Early Warning/Pantau Berita belum sehat" >&2
-  docker compose -p mih --env-file .env.prod -f docker-compose.prod.yml logs --tail 50 backend >&2
-  exit 1
-fi
-
-echo "=== status container ==="
-docker compose ps
-echo "=== deploy selesai ==="
+fail 'office smoke failed; no automatic DB rollback, inspect privately (do not dump secret-bearing logs)'

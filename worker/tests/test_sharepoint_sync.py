@@ -3,6 +3,8 @@ from types import SimpleNamespace
 
 from ingest import scan_dir
 import ingest
+import pytest
+import psycopg
 
 
 class FakeConn:
@@ -14,7 +16,7 @@ class FakeConn:
 
     def execute(self, sql, params=None):
         self.calls.append((sql, params))
-        result = SimpleNamespace(fetchone=lambda: None, fetchall=lambda: self._fetchall_result)
+        result = SimpleNamespace(fetchone=lambda: {"id": 1} if sql.startswith("INSERT INTO documents") else None, fetchall=lambda: self._fetchall_result)
         return result
 
     def commit(self):
@@ -34,7 +36,7 @@ def test_sharepoint_sync_panggil_rclone(monkeypatch, tmp_path):
     monkeypatch.delenv("RCLONE_CONFIG", raising=False)
     assert ingest.sharepoint_sync() is True
     cmd = calls[0]
-    assert cmd[0] == "rclone" and cmd[1] == "sync"
+    assert cmd[0] == "rclone" and cmd[1] == "copy"
     assert "sp:" in cmd
     assert str(tmp_path) in cmd
     assert "--include" in cmd
@@ -66,7 +68,7 @@ def test_scan_dir_source_sharepoint(tmp_path):
     assert inserts[0][1][-1] == "sharepoint"
 
 
-def test_prune_removed_hapus_hanya_source_sharepoint(tmp_path):
+def test_prune_removed_tidak_menghapus_source_sharepoint(tmp_path):
     ada = tmp_path / "ada.pdf"
     ada.write_bytes(b"x")
     conn = FakeConn([
@@ -74,11 +76,9 @@ def test_prune_removed_hapus_hanya_source_sharepoint(tmp_path):
         {"id": 2, "file_path": str(tmp_path / "hilang.pdf")},
     ])
     n = ingest.prune_removed(conn, "sharepoint")
-    assert n == 1
-    sql, params = conn.calls[0]
-    assert "source=%s" in sql and params[0] == "sharepoint"
-    deletes = [c for c in conn.calls if c[0].startswith("DELETE FROM documents")]
-    assert deletes[0][1] == (2,)
+    assert n == 0
+    assert not conn.calls
+
 
 
 def test_maybe_sharepoint_sync_interval(monkeypatch):
@@ -90,6 +90,15 @@ def test_maybe_sharepoint_sync_interval(monkeypatch):
     last = ingest.maybe_sharepoint_sync(object(), time.time(), 15)
     assert ran["sp"] == 0  # interval belum lewat -> lewati
     last = ingest.maybe_sharepoint_sync(object(), 0, 0)  # interval 0 -> selalu sync
-    assert ran["sp"] == 1 and ran["prune"] == 1
+    assert ran["sp"] == 1 and ran["prune"] == 0
     ingest.maybe_sharepoint_sync(object(), last, 0)
     assert ran["sp"] == 2
+
+
+@pytest.mark.parametrize('kind', ['drive', 'sharepoint'])
+def test_sync_scan_db_failure_reaches_watch_recovery(monkeypatch, kind):
+    monkeypatch.setenv(kind.upper() + '_REMOTE', 'synthetic:folder')
+    monkeypatch.setattr(ingest, kind + '_sync', lambda: True)
+    monkeypatch.setattr(ingest, 'scan_dir', lambda *a, **kw: (_ for _ in ()).throw(psycopg.OperationalError('lost')))
+    with pytest.raises(psycopg.OperationalError):
+        getattr(ingest, 'maybe_' + kind + '_sync')(object(), 0, 0)

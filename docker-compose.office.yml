@@ -1,0 +1,6 @@
+# Office storage identity only. Merge with prod using explicit -p mih and .env.prod.
+# No new database mount/project, no ingestion/routing change in phase 0.
+volumes:
+  appdata:
+    name: mih_appdata
+    external: true

@@ -1,0 +1,29 @@
+# TEMPLATE ONLY — do not enable before docs/tunnel-office.md gates.
+# A dedicated restricted VPS account/key is required; current root key is NOT used.
+[Unit]
+Description=MIH private office reverse SSH tunnel to VPS
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=hrmaulana
+Group=hrmaulana
+Environment=HOME=/home/hrmaulana
+ExecStart=/usr/bin/ssh -F /dev/null -NT -p 22 -l mih-tunnel -i /home/hrmaulana/.ssh/mih_office_tunnel -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/home/hrmaulana/.ssh/known_hosts -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ConnectTimeout=20 -o ConnectionAttempts=1 -o TCPKeepAlive=no -o "ProxyCommand=/usr/bin/corkscrew proxy.bappenas.go.id 8080 %%h %%p" -R 127.0.0.1:18080:127.0.0.1:8080 202.155.16.55
+Restart=always
+RestartSec=10s
+TimeoutStopSec=15s
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

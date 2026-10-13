@@ -5,25 +5,40 @@ on:
     workflows: [CI]
     types: [completed]
     branches: [master]
-  workflow_dispatch:
 
 concurrency:
-  group: deploy
+  group: deploy-office
   cancel-in-progress: false
 
 permissions:
-  actions: write
+  actions: read
   contents: read
 
 jobs:
   build-frontend-artifact:
-    name: Build frontend artifact on GitHub
+    name: Build exact tested revision on GitHub
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'master' &&
+          github.event.workflow_run.head_repository.full_name == github.repository }}
+    outputs:
+      sha: ${{ steps.revision.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Record tested SHA
+        id: revision
+        env:
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$TESTED_SHA"
+          printf 'sha=%s\n' "$TESTED_SHA" >> "$GITHUB_OUTPUT"
+      - name: Deployment safety tests
+        run: python3 -m unittest discover -s tests -p test_office_deployment.py
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -35,50 +50,46 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+      - name: Bind artifact to tested SHA
+        env:
+          TESTED_SHA: ${{ steps.revision.outputs.sha }}
+        run: |
+          printf '%s\n' "$TESTED_SHA" > frontend/dist/.mih-release-sha
+          cd frontend/dist
+          find . -type f ! -name .mih-release-sha ! -name .mih-release-checksums -print0 | sort -z | xargs -0 sha256sum > .mih-release-checksums
       - name: Upload frontend artifact
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-dist
+          name: frontend-dist-${{ steps.revision.outputs.sha }}
           path: frontend/dist/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
 
-  deploy-arthakarya:
-    name: Deploy ke Arthakarya (10.2.17.123)
-    runs-on: self-hosted
+  deploy-office:
+    name: Office keuanganpmp only (10.2.17.186)
+    if: ${{ vars.MIH_OFFICE_DEPLOY_ENABLED == 'true' }}
+    # Explicit prerequisite: register this unique label; never target generic runners.
+    runs-on: [self-hosted, Linux, X64, mih-office-keuanganpmp]
     timeout-minutes: 60
     needs: build-frontend-artifact
-    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
+    # Configure required reviewers AND prevent self-review before enabling runner.
+    environment: office-production
     steps:
-      - name: Download frontend artifact
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build-frontend-artifact.outputs.sha }}
+          persist-credentials: false
+      - name: Download frontend artifact from this run
         uses: actions/download-artifact@v4
         with:
-          name: frontend-dist
-          path: frontend-dist
-      - name: Perbarui repo di server
-        run: git -C "$HOME/mih" pull --ff-only
-      - name: Pasang frontend dist hasil CI
-        run: mkdir -p "$HOME/mih/frontend/dist" && cp -a frontend-dist/. "$HOME/mih/frontend/dist/"
-      - name: Build & restart stack
-        run: bash "$HOME/mih/scripts/deploy.sh"
+          name: frontend-dist-${{ needs.build-frontend-artifact.outputs.sha }}
+          path: ${{ runner.temp }}/mih-frontend-${{ needs.build-frontend-artifact.outputs.sha }}
+      - name: Deploy guarded exact revision
+        env:
+          MIH_OFFICE_DEPLOY_ENABLED: ${{ vars.MIH_OFFICE_DEPLOY_ENABLED }}
+          TESTED_SHA: ${{ needs.build-frontend-artifact.outputs.sha }}
+          FRONTEND_ARTIFACT: ${{ runner.temp }}/mih-frontend-${{ needs.build-frontend-artifact.outputs.sha }}
+        run: bash scripts/deploy.sh "$TESTED_SHA" "$FRONTEND_ARTIFACT" --apply
 
-  deploy-vps:
-    name: Deploy ke VPS publik (vps.arthakarya.id)
-    # Runner VPS didaftarkan --no-default-labels --labels vps, jadi label "vps"
-    # hanya cocok dengan runner ini — job tidak akan mendarat di Arthakarya.
-    runs-on: vps
-    timeout-minutes: 60
-    needs: build-frontend-artifact
-    if: ${{ github.event.workflow_run == null || github.event.workflow_run.conclusion == 'success' }}
-    steps:
-      - name: Download frontend artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend-dist
-      - name: Perbarui repo di VPS
-        run: git -C "$HOME/mih" pull --ff-only
-      - name: Pasang frontend dist hasil CI
-        run: mkdir -p "$HOME/mih/frontend/dist" && cp -a frontend-dist/. "$HOME/mih/frontend/dist/"
-      - name: Build & restart stack
-        run: bash "$HOME/mih/scripts/deploy-vps.sh"
+# VPS is proxy-only. No VPS app build, migrations, restart, nginx or tunnel edits.
