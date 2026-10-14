@@ -105,14 +105,19 @@ router.get("/documents/graph", requireLogin, async (req, res) => {
   }
 
   // Agregasi edge ke level klaster (untuk tampilan peta klaster).
-  const agg = new Map<string, { semantic: number; citations: number }>();
+  // semantic = RATA-RATA kemiripan antar pasangan dokumen lintas klaster (0..1),
+  // pair_count = jumlah pasangan yang disertakan ke rata-rata itu.
+  const agg = new Map<string, { sum: number; n: number; citations: number }>();
   for (const e of edges as any[]) {
     const a = clusterByDoc.get(Number(e.source));
     const b = clusterByDoc.get(Number(e.target));
     if (a == null || b == null || a === b) continue;
     const key = `${Math.min(a, b)}:${Math.max(a, b)}`;
-    const cur = agg.get(key) ?? { semantic: 0, citations: 0 };
-    cur.semantic += Number(e.semantic ?? 0);
+    const cur = agg.get(key) ?? { sum: 0, n: 0, citations: 0 };
+    if (e.semantic != null) {
+      cur.sum += Number(e.semantic);
+      cur.n += 1;
+    }
     cur.citations += Number(e.citations ?? 0);
     agg.set(key, cur);
   }
@@ -121,8 +126,9 @@ router.get("/documents/graph", requireLogin, async (req, res) => {
     return {
       source,
       target,
-      semantic: v.semantic > 0 ? Number(v.semantic.toFixed(2)) : null,
+      semantic: v.n > 0 ? Number((v.sum / v.n).toFixed(3)) : null,
       citations: v.citations > 0 ? v.citations : null,
+      pair_count: v.n,
     };
   });
 

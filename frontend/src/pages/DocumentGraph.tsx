@@ -9,6 +9,13 @@ import {
   PageHeader,
   Select,
 } from "../components/ui";
+import {
+  clusterLinkDistance,
+  docLinkDistance,
+  docRadius,
+  passEdge,
+  shouldDrawLabel,
+} from "./documentGraphMath";
 
 const TYPE_COLOR: Record<string, string> = {
   paparan: "#1d4ed8",
@@ -56,10 +63,6 @@ function clusterEdgeWidth(e: GraphEdge): number {
 }
 function truncate(s: string, n: number): string {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
-}
-// Jari-jari disc dokumen: kecil → besar, ∝ jumlah relasi (derajat).
-function docRadius(n: any, deg: Map<number, number>): number {
-  return 4 + Math.min(deg.get(Number(n.id)) ?? 1, 30) / 2;
 }
 // Force collide sebaris d3.forceCollide: dorong node yang tumpang tindih
 // (jarak pusat < jumlah jari-jari + padding) — kunci anti-tumpuk (pola Hilirisasi).
@@ -170,8 +173,7 @@ export default function DocumentGraph() {
   const minSemNum = Number(minSem);
 
   const passFilter = (e: GraphEdge) =>
-    (showSem && e.semantic !== null && e.semantic >= minSemNum) ||
-    (showCit && (e.citations ?? 0) > 0);
+    passEdge(e, { showSem, showCit, minSem: minSemNum });
 
   // Level 1: node = klaster, link = edge antar-klaster.
   const clusterGraph = useMemo(
@@ -278,9 +280,7 @@ export default function DocumentGraph() {
       // dengan tarikan lemah + collide agar bubble tak saling tumpuk.
       const radius = (n: any) => 16 + Math.min(n.doc_count ?? 1, 45) / 1.5;
       g.d3Force("charge")?.strength((n: any) => -6 * radius(n));
-      g.d3Force("link")?.distance(
-        (l: any) => 100 + Math.min((l.semantic ?? 0) / 4, 40),
-      );
+      g.d3Force("link")?.distance((l: any) => clusterLinkDistance(l.semantic));
       g.d3Force("link")?.strength(0.05);
       g.d3Force("x", null);
       g.d3Force("y", null);
@@ -305,7 +305,8 @@ export default function DocumentGraph() {
       // Semua dokumen lintas klaster dalam satu graf: charge kuat + link panjang
       // + collide radius+10 agar node tak menumpuk, ditambah forceX/Y per klaster
       // supaya dokumen tiap klaster tersusun dalam kolom yang mudah dibaca.
-      const radius = (n: any) => docRadius(n, degreeAll);
+      const radius = (n: any) =>
+        docRadius(degreeAll.get(Number(n.id)) ?? 1);
       g.d3Force("charge")?.strength(-300);
       g.d3Force("link")?.distance(100);
       g.d3Force("link")?.strength(0.8);
@@ -357,10 +358,10 @@ export default function DocumentGraph() {
     } else {
       // Level 2 (dokumen satu klaster): spacing standar + collide & bounds
       // agar dokumen tak menumpuk (sebelumnya collide di-null → node bertumpuk).
-      const radius = (n: any) => docRadius(n, degree);
-      g.d3Force("charge")?.strength(-70);
-      g.d3Force("link")?.distance(45);
-      g.d3Force("link")?.strength(0.25);
+      const radius = (n: any) => docRadius(degree.get(Number(n.id)) ?? 1);
+      g.d3Force("charge")?.strength(-220);
+      g.d3Force("link")?.distance((l: any) => docLinkDistance(l.semantic));
+      g.d3Force("link")?.strength(0.2);
       g.d3Force("x", null);
       g.d3Force("y", null);
       g.d3Force("clusterX", null);
@@ -377,7 +378,7 @@ export default function DocumentGraph() {
       );
       g.d3Force(
         "collide",
-        collideForce(() => graphDataRef.current.nodes, radius, 10),
+        collideForce(() => graphDataRef.current.nodes, radius, 18),
       );
     }
   }, [view, level, graphSize, degree, degreeAll]);
@@ -574,7 +575,9 @@ export default function DocumentGraph() {
                   }
                   // Dokumen: disc warna + label. Ukuran ∝ jumlah relasi (derajat).
                   // Mode "Semua Dokumen": warna per klaster; drilldown: warna tipe file.
-                  const r = docRadius(n, view === "all" ? degreeAll : degree);
+                  const r = docRadius(
+                    (view === "all" ? degreeAll : degree).get(id) ?? 1,
+                  );
                   if (dim) ctx.globalAlpha = 0.2;
                   ctx.beginPath();
                   ctx.arc(x, y, r, 0, 2 * Math.PI);
@@ -602,7 +605,7 @@ export default function DocumentGraph() {
                     ctx.strokeStyle = "#f59e0b";
                     ctx.stroke();
                   }
-                  if (globalScale >= 0.5) {
+                  if (shouldDrawLabel(globalScale)) {
                     ctx.font = "600 10px system-ui, sans-serif";
                     ctx.textAlign = "center";
                     ctx.textBaseline = "top";
