@@ -15,7 +15,9 @@ services:
       retries: 12
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     env_file: .env
     environment:
       DATABASE_URL: postgres://mih:mih@db:5432/mih

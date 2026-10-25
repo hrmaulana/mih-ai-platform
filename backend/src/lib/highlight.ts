@@ -1,6 +1,9 @@
 /**
- * highlight.ts
- * Modul highlight keyword PKPN & Makropembangunan untuk dashboard berita.
+ * highlight.ts — modul highlight keyword PKPN & Makropembangunan (dashboard berita).
+ *
+ * Inti (buildMatcher/findMatches/segment/detectClusters/relevanceFloor/applyFloor/
+ * validateLLMKeywords) kini tinggal di `shared/highlight-core.ts` supaya tidak lagi
+ * disalin identik antar paket. Berkas ini hanya menyimpan DATA keyword milik backend.
  *
  * - Tanpa dependensi, jalan di Bun/Node (ESM).
  * - Highlight dilakukan lewat kode, bukan LLM, sehingga hasilnya pasti muncul
@@ -14,6 +17,16 @@
  *     ? <mark key={i} className={`hl hl-${s.match.cat}`}>{s.text}</mark>
  *     : s.text);
  */
+
+import { createHighlight, type KeywordEntry } from "../../../shared/highlight-core";
+
+export type {
+  ClusterResult,
+  KeywordEntry,
+  MatchResult,
+  Matcher,
+  SegmentResult,
+} from "../../../shared/highlight-core";
 
 export const CLUSTERS: Record<number, string> = {
   1: "Kedaulatan Pangan",
@@ -38,13 +51,6 @@ export const CLUSTER_ICONS: Record<number, string> = {
 }
 
 // K(kategori, klaster[], variasi penulisan[], weak?)
-interface KeywordEntry {
-  cat: string
-  cluster: number[]
-  terms: string[]
-  weak: boolean
-}
-
 const K = (cat: string, cluster: number[], terms: string[], weak = false): KeywordEntry => ({ cat, cluster, terms, weak })
 
 export const KEYWORDS: KeywordEntry[] = [
@@ -109,142 +115,11 @@ export const KEYWORDS: KeywordEntry[] = [
   K("makro", [], ["Danantara", "Patriot Bonds", "industrialisasi", "produktivitas"]),
 ]
 
-// ------------------------------------------------------------------ internals
+const core = createHighlight(KEYWORDS)
 
-interface MatchResult {
-  start: number
-  end: number
-  text: string
-  cat: string
-  cluster: number[]
-  weak: boolean
-}
-
-interface SegmentResult {
-  text: string
-  match?: MatchResult
-}
-
-interface ClusterResult {
-  klaster: number[]
-  hits: Record<number, number>
-  strong: number
-  weak: number
-  literalPKPN: boolean
-}
-
-interface Matcher {
-  source: string
-  lookup: Map<string, KeywordEntry>
-}
-
-const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim()
-// spasi di keyword boleh cocok dengan spasi/newline berapa pun
-const flex = (term: string) => term.trim().split(/\s+/).map(esc).join("\\s+")
-
-/**
- * Bangun regex tunggal dari daftar keyword.
- * Frasa terpanjang diurutkan lebih dulu supaya "Kampung Nelayan Merah Putih"
- * menang atas "Merah Putih" dan sejenisnya.
- */
-export function buildMatcher(entries: KeywordEntry[] = KEYWORDS): Matcher {
-  const lookup = new Map<string, KeywordEntry>()
-  const terms: string[] = []
-  for (const e of entries) {
-    for (const t of e.terms) {
-      lookup.set(norm(t), e)
-      terms.push(t)
-    }
-  }
-  terms.sort((a, b) => b.length - a.length)
-  const alt = terms.map(flex).join("|")
-  // batas kata yang aman untuk huruf Unicode dan angka
-  const source = `(?<![\\p{L}\\p{N}])(?:${alt})(?![\\p{L}\\p{N}])`
-  return { source, lookup }
-}
-
-const DEFAULT = buildMatcher()
-
-/** Semua kecocokan di teks: [{start, end, text, cat, cluster, weak}] */
-export function findMatches(text: string, matcher: Matcher = DEFAULT): MatchResult[] {
-  if (!text) return []
-  const re = new RegExp(matcher.source, "giu") // regex baru per panggilan (lastIndex aman)
-  const out: MatchResult[] = []
-  let m: RegExpExecArray | null
-  while ((m = re.exec(text)) !== null) {
-    const e = matcher.lookup.get(norm(m[0]))
-    if (!e) continue
-    out.push({
-      start: m.index,
-      end: m.index + m[0].length,
-      text: m[0],
-      cat: e.cat,
-      cluster: e.cluster,
-      weak: e.weak,
-    })
-  }
-  return out
-}
-
-/** Pecah teks jadi segmen: [{text}] atau [{text, match}] — aman untuk React (tanpa innerHTML). */
-export function segment(text: string, matcher: Matcher = DEFAULT): SegmentResult[] {
-  const out: SegmentResult[] = []
-  let pos = 0
-  for (const m of findMatches(text, matcher)) {
-    if (m.start > pos) out.push({ text: text.slice(pos, m.start) })
-    out.push({ text: m.text, match: m })
-    pos = m.end
-  }
-  if (pos < text.length) out.push({ text: text.slice(pos) })
-  return out
-}
-
-/**
- * Deteksi klaster PKPN dari teks (hanya keyword "strong").
- * Return: { klaster: [3,4], hits: {3: 2, 4: 1}, strong: n, weak: n, literalPKPN: bool }
- */
-export function detectClusters(text: string, matcher: Matcher = DEFAULT): ClusterResult {
-  const hits: Record<number, number> = {}
-  let strong = 0, weak = 0, literalPKPN = false
-  for (const m of findMatches(text, matcher)) {
-    if (m.cat !== "pkpn") continue
-    if (m.weak) { weak++; continue }
-    strong++
-    if (/^(pkpn|program\s+kerja\s+prioritas\s+nasional)$/i.test(m.text)) literalPKPN = true
-    for (const c of m.cluster) hits[c] = (hits[c] || 0) + 1
-  }
-  const klaster = Object.keys(hits)
-    .map(Number)
-    .sort((a, b) => hits[b] - hits[a] || a - b)
-  return { klaster, hits, strong, weak, literalPKPN }
-}
-
-/**
- * Skor relevansi minimum dari kode (0-3):
- *  - menyebut "PKPN" secara literal          -> 3
- *  - ada keyword program PKPN (strong)        -> 2
- *  - hanya keyword makro (strong)             -> 1
- *  - kosong / hanya keyword weak              -> 0
- */
-export function relevanceFloor(text: string, matcher: Matcher = DEFAULT): number {
-  const d = detectClusters(text, matcher)
-  if (d.literalPKPN) return 3
-  if (d.strong > 0) return 2
-  const macro = findMatches(text, matcher).some((m) => m.cat === "makro" && !m.weak)
-  return macro ? 1 : 0
-}
-
-/** Gabungkan penilaian LLM dengan lantai dari kode: skor akhir tidak boleh di bawah lantai. */
-export function applyFloor(llmRelevansi: number | null, text: string, matcher: Matcher = DEFAULT): number {
-  return Math.max(llmRelevansi ?? 0, relevanceFloor(text, matcher))
-}
-
-/**
- * Buang keyword dari LLM yang tidak benar-benar ada di teks (anti-halusinasi).
- * llmKeywords: [{kata, kategori}]
- */
-export function validateLLMKeywords(text: string, llmKeywords: { kata: string; kategori?: string }[] = []): { kata: string; kategori?: string }[] {
-  const hay = norm(text)
-  return llmKeywords.filter((k) => k && k.kata && hay.includes(norm(k.kata)))
-}
+export const findMatches = core.findMatches
+export const segment = core.segment
+export const detectClusters = core.detectClusters
+export const relevanceFloor = core.relevanceFloor
+export const applyFloor = core.applyFloor
+export const validateLLMKeywords = core.validateLLMKeywords

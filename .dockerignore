@@ -1,0 +1,14 @@
+# Konteks build beberapa service = root repo (agar bisa memakai `shared/`).
+# Abaikan hal yang tidak perlu masuk image.
+**/node_modules
+**/.venv
+**/venv
+**/__pycache__
+**/dist
+**/.git
+**/.env
+**/.env.*
+**/*.log
+data/
+**/data/
+**/tmp

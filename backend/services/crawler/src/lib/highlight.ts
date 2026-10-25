@@ -1,14 +1,19 @@
 /**
- * highlight.ts
- * Modul highlight keyword PKPN & Makropembangunan untuk dashboard berita.
+ * highlight.ts — highlight keyword PKPN & Makropembangunan (service crawler).
+ *
+ * Inti (buildMatcher/findMatches/detectClusters/relevanceFloor) kini tinggal di
+ * `shared/highlight-core.ts` supaya tidak lagi disalin identik dari backend.
+ * Berkas ini hanya menyimpan DATA keyword milik crawler.
  */
 
-interface KeywordEntry {
-  cat: string
-  cluster: number[]
-  terms: string[]
-  weak: boolean
-}
+import { createHighlight, type KeywordEntry } from "../../../../../shared/highlight-core";
+
+export type {
+  ClusterResult,
+  KeywordEntry,
+  MatchResult,
+  Matcher,
+} from "../../../../../shared/highlight-core";
 
 const K = (cat: string, cluster: number[], terms: string[], weak = false): KeywordEntry => ({ cat, cluster, terms, weak })
 
@@ -55,89 +60,7 @@ const KEYWORDS: KeywordEntry[] = [
   K("makro", [], ["Danantara", "Patriot Bonds", "industrialisasi", "produktivitas"]),
 ]
 
-interface MatchResult {
-  start: number
-  end: number
-  text: string
-  cat: string
-  cluster: number[]
-  weak: boolean
-}
+const core = createHighlight(KEYWORDS)
 
-interface ClusterResult {
-  klaster: number[]
-  hits: Record<number, number>
-  strong: number
-  weak: number
-  literalPKPN: boolean
-}
-
-interface Matcher {
-  source: string
-  lookup: Map<string, KeywordEntry>
-}
-
-const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim()
-const flex = (term: string) => term.trim().split(/\s+/).map(esc).join("\\s+")
-
-function buildMatcher(entries: KeywordEntry[] = KEYWORDS): Matcher {
-  const lookup = new Map<string, KeywordEntry>()
-  const terms: string[] = []
-  for (const e of entries) {
-    for (const t of e.terms) {
-      lookup.set(norm(t), e)
-      terms.push(t)
-    }
-  }
-  terms.sort((a, b) => b.length - a.length)
-  const alt = terms.map(flex).join("|")
-  const source = `(?<![\\p{L}\\p{N}])(?:${alt})(?![\\p{L}\\p{N}])`
-  return { source, lookup }
-}
-
-const DEFAULT = buildMatcher()
-
-function findMatches(text: string, matcher: Matcher = DEFAULT): MatchResult[] {
-  if (!text) return []
-  const re = new RegExp(matcher.source, "giu")
-  const out: MatchResult[] = []
-  let m: RegExpExecArray | null
-  while ((m = re.exec(text)) !== null) {
-    const e = matcher.lookup.get(norm(m[0]))
-    if (!e) continue
-    out.push({
-      start: m.index,
-      end: m.index + m[0].length,
-      text: m[0],
-      cat: e.cat,
-      cluster: e.cluster,
-      weak: e.weak,
-    })
-  }
-  return out
-}
-
-export function detectClusters(text: string, matcher: Matcher = DEFAULT): ClusterResult {
-  const hits: Record<number, number> = {}
-  let strong = 0, weak = 0, literalPKPN = false
-  for (const m of findMatches(text, matcher)) {
-    if (m.cat !== "pkpn") continue
-    if (m.weak) { weak++; continue }
-    strong++
-    if (/^(pkpn|program\s+kerja\s+prioritas\s+nasional)$/i.test(m.text)) literalPKPN = true
-    for (const c of m.cluster) hits[c] = (hits[c] || 0) + 1
-  }
-  const klaster = Object.keys(hits)
-    .map(Number)
-    .sort((a, b) => hits[b] - hits[a] || a - b)
-  return { klaster, hits, strong, weak, literalPKPN }
-}
-
-export function relevanceFloor(text: string, matcher: Matcher = DEFAULT): number {
-  const d = detectClusters(text, matcher)
-  if (d.literalPKPN) return 3
-  if (d.strong > 0) return 2
-  const macro = findMatches(text, matcher).some((m) => m.cat === "makro" && !m.weak)
-  return macro ? 1 : 0
-}
+export const detectClusters = core.detectClusters
+export const relevanceFloor = core.relevanceFloor
