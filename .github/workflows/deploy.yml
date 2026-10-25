@@ -26,7 +26,7 @@ jobs:
     outputs:
       sha: ${{ steps.revision.outputs.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
@@ -39,7 +39,7 @@ jobs:
           printf 'sha=%s\n' "$TESTED_SHA" >> "$GITHUB_OUTPUT"
       - name: Deployment safety tests
         run: python3 -m unittest discover -s tests -p test_office_deployment.py
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
@@ -58,7 +58,7 @@ jobs:
           cd frontend/dist
           find . -type f ! -name .mih-release-sha ! -name .mih-release-checksums -print0 | sort -z | xargs -0 sha256sum > .mih-release-checksums
       - name: Upload frontend artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: frontend-dist-${{ steps.revision.outputs.sha }}
           path: frontend/dist/
@@ -76,12 +76,12 @@ jobs:
     # Configure required reviewers AND prevent self-review before enabling runner.
     environment: office-production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.build-frontend-artifact.outputs.sha }}
           persist-credentials: false
       - name: Download frontend artifact from this run
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: frontend-dist-${{ needs.build-frontend-artifact.outputs.sha }}
           path: ${{ runner.temp }}/mih-frontend-${{ needs.build-frontend-artifact.outputs.sha }}

@@ -23,5 +23,11 @@
     "@types/pg": "^8.11.10",
     "@types/supertest": "^6.0.2",
     "supertest": "^7.0.0"
+  },
+  "overrides": {
+    "proxy-addr": "^2.0.8",
+    "body-parser": "^2.4.0",
+    "image-size": "^2.0.3",
+    "multer": "^2.0.0"
   }
 }

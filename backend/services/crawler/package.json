@@ -14,5 +14,9 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.7.0",
     "@types/pg": "^8.11.10"
+  },
+  "overrides": {
+    "proxy-addr": "^2.0.8",
+    "body-parser": "^2.4.0"
   }
 }
