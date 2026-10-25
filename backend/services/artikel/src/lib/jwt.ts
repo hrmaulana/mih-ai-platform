@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-export interface JwtPayload {
+interface JwtPayload {
   userId: number;
   role: string;
   iat: number;

@@ -24,7 +24,7 @@ export type SourceTable = {
 };
 
 /** Transkripsi tabel dari Renstra Deputi Bidang PMP 2025-2029 (docs/references/Renstra-Dep-PMP-2025-2029.pdf). */
-export const renstraTables: SourceTable[] = [
+const renstraTables: SourceTable[] = [
   {
     id: "1.1",
     title: "Tabel 1.1 Pencapaian Kinerja Prioritas Nasional (PN) Rencana Kerja Pemerintah (RKP) Tahun 2020–2024 Lingkup Ekonomi",

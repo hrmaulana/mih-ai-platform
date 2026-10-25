@@ -3,28 +3,6 @@
  * Modul highlight keyword PKPN & Makropembangunan untuk dashboard berita.
  */
 
-export const CLUSTERS: Record<number, string> = {
-  1: "Kedaulatan Pangan",
-  2: "Kemandirian Energi dan Air",
-  3: "Pendidikan",
-  4: "Kesehatan",
-  5: "Hilirisasi dan Industrialisasi",
-  6: "Infrastruktur, Perumahan dan Ketahanan Bencana",
-  7: "Ekonomi Kerakyatan dan Desa",
-  8: "Penurunan Kemiskinan",
-}
-
-export const CLUSTER_ICONS: Record<number, string> = {
-  1: "🌾",
-  2: "⚡",
-  3: "🎓",
-  4: "🏥",
-  5: "🏭",
-  6: "🏗️",
-  7: "🏘️",
-  8: "📉",
-}
-
 interface KeywordEntry {
   cat: string
   cluster: number[]
@@ -34,7 +12,7 @@ interface KeywordEntry {
 
 const K = (cat: string, cluster: number[], terms: string[], weak = false): KeywordEntry => ({ cat, cluster, terms, weak })
 
-export const KEYWORDS: KeywordEntry[] = [
+const KEYWORDS: KeywordEntry[] = [
   K("pkpn", [], ["PKPN", "Program Kerja Prioritas Nasional"]),
   K("pkpn", [1], ["Kampung Nelayan Merah Putih", "KNMP"]),
   K("pkpn", [1], ["Kapal Ikan Modern", "modernisasi kapal perikanan"]),
@@ -103,7 +81,7 @@ const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim()
 const flex = (term: string) => term.trim().split(/\s+/).map(esc).join("\\s+")
 
-export function buildMatcher(entries: KeywordEntry[] = KEYWORDS): Matcher {
+function buildMatcher(entries: KeywordEntry[] = KEYWORDS): Matcher {
   const lookup = new Map<string, KeywordEntry>()
   const terms: string[] = []
   for (const e of entries) {
@@ -120,7 +98,7 @@ export function buildMatcher(entries: KeywordEntry[] = KEYWORDS): Matcher {
 
 const DEFAULT = buildMatcher()
 
-export function findMatches(text: string, matcher: Matcher = DEFAULT): MatchResult[] {
+function findMatches(text: string, matcher: Matcher = DEFAULT): MatchResult[] {
   if (!text) return []
   const re = new RegExp(matcher.source, "giu")
   const out: MatchResult[] = []

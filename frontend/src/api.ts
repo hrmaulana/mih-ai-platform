@@ -1,7 +1,7 @@
 export interface User {
   id: number; name: string; email: string; unit_kerja: string; is_admin: boolean;
 }
-export interface LoginResult {
+interface LoginResult {
   user: User;
   token: string;
 }
@@ -19,7 +19,7 @@ export interface Citation {
   label: number; document_id: number; filename: string; file_type: string;
   page_or_slide: number | null; section_title: string | null;
 }
-export interface AskResult { answer: string; citations: Citation[]; }
+interface AskResult { answer: string; citations: Citation[]; }
 export interface ContentItem {
   id: number;
   type: "news" | "publication";
@@ -74,7 +74,7 @@ export function getToken(): string | null {
   return authToken;
 }
 
-export function setToken(token: string | null) {
+function setToken(token: string | null) {
   authToken = token;
   if (token) {
     localStorage.setItem("mih_token", token);

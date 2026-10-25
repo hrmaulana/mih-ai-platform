@@ -13,7 +13,7 @@ import { calculateLexiconScore } from "../lib/lexicon";
 
 // ===== Types =====
 
-export interface ScoreResult {
+interface ScoreResult {
   relevansi_llm: number;
   relevansi_final: number;
   lantai_diterapkan: boolean;
@@ -41,10 +41,6 @@ interface LLMResponse {
 }
 
 // ===== Helpers =====
-
-export function hashContent(text: string): string {
-  return createHash("sha256").update(text).digest("hex");
-}
 
 // ===== LLM Call =====
 

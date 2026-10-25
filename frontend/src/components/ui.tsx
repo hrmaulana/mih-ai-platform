@@ -57,10 +57,6 @@ export function Card({
   );
 }
 
-export function CardBody({ children }: { children: ReactNode }) {
-  return <div className="p-7">{children}</div>;
-}
-
 /* ------------------------------------------------------------------ */
 /* Badge (status pill)                                                 */
 /* ------------------------------------------------------------------ */

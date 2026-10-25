@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-export interface JwtPayload {
+interface JwtPayload {
   userId: number;
   role: string;
   iat: number;
@@ -15,19 +15,6 @@ function base64UrlEncode(data: string): string {
 
 function sign(secret: string, payload: string): string {
   return createHmac("sha256", secret).update(payload).digest("base64url");
-}
-
-export function signToken(userId: number, role: string, jwtSecret: string): string {
-  const now = Math.floor(Date.now() / 1000);
-  const payload: JwtPayload = {
-    userId,
-    role,
-    iat: now,
-    exp: now + 60 * 60 * 24,
-  };
-  const payloadStr = base64UrlEncode(JSON.stringify(payload));
-  const signature = sign(jwtSecret, `${header}.${payloadStr}`);
-  return `${header}.${payloadStr}.${signature}`;
 }
 
 export function verifyToken(token: string, jwtSecret: string): JwtPayload | null {

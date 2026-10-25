@@ -4,17 +4,6 @@
  * Tanpa dependensi, jalan di Bun/Node (ESM).
  */
 
-export const CLUSTERS: Record<number, string> = {
-  1: "Kedaulatan Pangan",
-  2: "Kemandirian Energi dan Air",
-  3: "Pendidikan",
-  4: "Kesehatan",
-  5: "Hilirisasi dan Industrialisasi",
-  6: "Infrastruktur, Perumahan dan Ketahanan Bencana",
-  7: "Ekonomi Kerakyatan dan Desa",
-  8: "Penurunan Kemiskinan",
-};
-
 interface KeywordEntry {
   cat: string;
   cluster: number[];
@@ -110,7 +99,7 @@ function buildMatcher(entries: KeywordEntry[] = KEYWORDS): Matcher {
 
 const DEFAULT = buildMatcher();
 
-export function findMatches(text: string, matcher: Matcher = DEFAULT): MatchResult[] {
+function findMatches(text: string, matcher: Matcher = DEFAULT): MatchResult[] {
   if (!text) return [];
   const re = new RegExp(matcher.source, "giu");
   const out: MatchResult[] = [];

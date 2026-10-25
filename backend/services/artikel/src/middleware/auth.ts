@@ -20,12 +20,3 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   (req as any).role = payload.role;
   next();
 }
-
-export function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  requireAuth(req, res, () => {
-    if ((req as any).role !== "admin") {
-      return res.status(403).json({ error: "admin only" });
-    }
-    next();
-  });
-}

@@ -48,7 +48,7 @@ test("webhook dipanggil & hasilnya dipakai saat ragWebhookUrl terisi", async () 
       }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
 
   config.ragWebhookUrl = "http://n8n.test/rag";
   config.llmProvider = "mock";
@@ -65,7 +65,7 @@ test("webhook dipanggil & hasilnya dipakai saat ragWebhookUrl terisi", async () 
 test("webhook gagal (error jaringan) → fallback ke query lokal", async () => {
   globalThis.fetch = (async () => {
     throw new Error("network down");
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
   config.ragWebhookUrl = "http://n8n.test/rag";
   config.llmProvider = "mock";
 
@@ -75,7 +75,7 @@ test("webhook gagal (error jaringan) → fallback ke query lokal", async () => {
 });
 
 test("webhook balas HTTP 500 → fallback ke query lokal", async () => {
-  globalThis.fetch = (async () => new Response(JSON.stringify({ error: "boom" }), { status: 500 })) as typeof fetch;
+  globalThis.fetch = (async () => new Response(JSON.stringify({ error: "boom" }), { status: 500 })) as unknown as typeof fetch;
   config.ragWebhookUrl = "http://n8n.test/rag";
   config.llmProvider = "mock";
 
@@ -85,7 +85,7 @@ test("webhook balas HTTP 500 → fallback ke query lokal", async () => {
 
 test("webhook balas format tidak valid → fallback ke query lokal", async () => {
   globalThis.fetch = (async () =>
-    new Response(JSON.stringify({ foo: "bar" }), { status: 200, headers: { "Content-Type": "application/json" } })) as typeof fetch;
+    new Response(JSON.stringify({ foo: "bar" }), { status: 200, headers: { "Content-Type": "application/json" } })) as unknown as typeof fetch;
   config.ragWebhookUrl = "http://n8n.test/rag";
   config.llmProvider = "mock";
 
@@ -98,7 +98,7 @@ test("ragWebhookUrl kosong → query lokal, fetch tidak dipanggil", async () => 
   globalThis.fetch = (async () => {
     called = true;
     throw new Error("tidak boleh dipanggil");
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
   config.ragWebhookUrl = "";
 
   const { labeled } = await search("rencana pembangunan makro?");

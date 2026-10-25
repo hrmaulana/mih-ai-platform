@@ -18,12 +18,12 @@ import type { User } from "../../api";
  * dan menu/tautan private ikut muncul. user null = mode publik.
  */
 
-export interface PortalAuth {
+interface PortalAuth {
   user: User | null;
   onLogout: () => void;
 }
 
-export const PortalAuthContext = createContext<PortalAuth>({
+const PortalAuthContext = createContext<PortalAuth>({
   user: null,
   onLogout: () => {},
 });

@@ -3,7 +3,7 @@
  * Extracted from routes/early-warning.ts for the crawler service
  */
 
-export interface RssItem {
+interface RssItem {
   judul: string;
   url: string;
   konten: string;

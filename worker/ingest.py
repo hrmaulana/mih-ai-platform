@@ -55,13 +55,8 @@ def scan_dir(conn, dirpath: str, source: str = "drive", *, exclude_dirs=()) -> i
     return added
 
 
-def process_document(conn, doc) -> int:
-    """Proses dalam transaksi/lock claim milik process_pending, tanpa commit."""
-    doc_id = doc["id"]
-    set_status(conn, doc_id, "processing")
-    path = Path(doc["file_path"])
-    if not path.exists():
-        raise FileNotFoundError(f"file tidak ditemukan: {path}")
+def _extract_chunks(path: Path, doc):
+    """Parse dokumen → chunks + halaman yang perlu OCR. Galat mount/DB diteruskan apa adanya."""
     ocr = os.environ.get("OCR_ENABLED", "1") in ("1", "true", "True")
     try:
         segments = parse_document(path, doc["file_extension"], ocr=ocr)
@@ -74,9 +69,25 @@ def process_document(conn, doc) -> int:
         raise
     except Exception as exc:
         raise DocumentFailure(str(exc)) from exc
+    return chunks, ocr_pages
+
+
+def _embed_chunks(chunks) -> list[list[float]]:
     vectors = embed_texts([c.text for c in chunks])
     if len(vectors) != len(chunks):
         raise ValueError(f"jumlah embedding {len(vectors)} != jumlah chunk {len(chunks)}")
+    return vectors
+
+
+def process_document(conn, doc) -> int:
+    """Proses dalam transaksi/lock claim milik process_pending, tanpa commit."""
+    doc_id = doc["id"]
+    set_status(conn, doc_id, "processing")
+    path = Path(doc["file_path"])
+    if not path.exists():
+        raise FileNotFoundError(f"file tidak ditemukan: {path}")
+    chunks, ocr_pages = _extract_chunks(path, doc)
+    vectors = _embed_chunks(chunks)
     # Ganti, bukan tambah: pemanggil memegang lock baris dokumen; penghapusan
     # ikut rollback bersama insert/status bila penulisan mana pun gagal.
     conn.execute("DELETE FROM chunks WHERE document_id=%s", (doc_id,))
