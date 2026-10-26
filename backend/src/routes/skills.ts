@@ -95,7 +95,7 @@ router.post("/skills/pptx", requireLogin, async (req, res) => {
     );
   }
 
-  const buf = await pptx.write({ outputType: "nodebuffer" });
+  const buf = (await pptx.write({ outputType: "nodebuffer" })) as Buffer;
   res.setHeader(
     "Content-Type",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation"
@@ -104,7 +104,7 @@ router.post("/skills/pptx", requireLogin, async (req, res) => {
     "Content-Disposition",
     `attachment; filename="${slugify(title)}.pptx"`
   );
-  res.send(Buffer.from(buf));
+  res.send(buf);
 });
 
 export default router;

@@ -18,6 +18,7 @@ export interface SearchRow {
   file_type: string;
   page_or_slide: number | null;
   section_title: string | null;
+  content: string;
   label: number;
 }
 
@@ -114,7 +115,7 @@ export function buildContext(labeled: SearchRow[], groupByDocument: boolean): st
 
 const RAG_WEBHOOK_TIMEOUT_MS = 30_000;
 
-async function searchLocal(question: string): Promise<{ labeled: SearchRow[]; context: string }> {
+async function searchLocal(question: string): Promise<SearchResult> {
   const [qv] = await embedTexts([question]);
   const SELECT = `SELECT c.id, c.content, c.page_or_slide, c.section_title,
                          d.id AS document_id, d.filename, d.file_type
