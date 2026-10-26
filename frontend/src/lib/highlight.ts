@@ -1,17 +1,18 @@
 /**
- * highlight.js — Modul highlight keyword PKPN & Makropembangunan untuk dashboard berita.
- * Port ke TypeScript untuk frontend React.
+ * highlight.ts — modul highlight keyword PKPN & Makropembangunan (frontend React).
  *
- * - Tanpa dependensi
- * - Highlight lewat kode, bukan LLM
- * - Keyword "weak" tetap di-highlight tapi tidak menaikkan skor relevansi
+ * Inti (buildMatcher/findMatches/segment/detectClusters/relevanceFloor/…) kini
+ * tinggal di `shared/highlight-core.ts`; berkas ini hanya menyimpan DATA keyword
+ * frontend lalu mengikatnya.
  *
- * Cara pakai (React):
- *   import { segment } from "./highlight";
+ * Cara pakai:
+ *   import { segment } from "./lib/highlight";
  *   segment(text).map((s, i) => s.match
  *     ? <mark key={i} className={`hl hl-${s.match.cat}`}>{s.text}</mark>
  *     : s.text);
  */
+
+import { createHighlight, type KeywordEntry } from "../../../shared/highlight-core";
 
 export const CLUSTERS: Record<number, string> = {
   1: "Kedaulatan Pangan",
@@ -27,13 +28,6 @@ export const CLUSTERS: Record<number, string> = {
 export const CLUSTER_ICONS: Record<number, string> = {
   1: "🌾", 2: "⚡", 3: "🎓", 4: "🏥", 5: "🏭", 6: "🏗️", 7: "🏘️", 8: "📉",
 };
-
-interface KeywordEntry {
-  cat: string;
-  cluster: number[];
-  terms: string[];
-  weak: boolean;
-}
 
 const K = (cat: string, cluster: number[], terms: string[], weak = false): KeywordEntry => ({
   cat, cluster, terms, weak,
@@ -82,67 +76,6 @@ const KEYWORDS: KeywordEntry[] = [
   K("makro", [], ["Danantara", "Patriot Bonds", "industrialisasi", "produktivitas"]),
 ];
 
-const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
-const flex = (term: string) => term.trim().split(/\s+/).map(esc).join("\\s+");
+const core = createHighlight(KEYWORDS);
 
-interface Matcher {
-  source: string;
-  lookup: Map<string, KeywordEntry>;
-}
-
-function buildMatcher(entries = KEYWORDS): Matcher {
-  const lookup = new Map<string, KeywordEntry>();
-  const terms: string[] = [];
-  for (const e of entries) {
-    for (const t of e.terms) {
-      lookup.set(norm(t), e);
-      terms.push(t);
-    }
-  }
-  terms.sort((a, b) => b.length - a.length);
-  const alt = terms.map(flex).join("|");
-  const source = `(?<![\\p{L}\\p{N}])(?:${alt})(?![\\p{L}\\p{N}])`;
-  return { source, lookup };
-}
-
-let _matcher: Matcher | null = null;
-function getMatcher() {
-  if (!_matcher) _matcher = buildMatcher();
-  return _matcher;
-}
-
-export interface MatchResult {
-  start: number; end: number; text: string;
-  cat: string; cluster: number[]; weak: boolean;
-}
-
-/** Cari semua keyword PKPN/makro di teks */
-function findMatches(text: string): MatchResult[] {
-  if (!text) return [];
-  const matcher = getMatcher();
-  const re = new RegExp(matcher.source, "giu");
-  const out: MatchResult[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text)) !== null) {
-    const e = matcher.lookup.get(norm(m[0]));
-    if (!e) continue;
-    out.push({ start: m.index, end: m.index + m[0].length, text: m[0], cat: e.cat, cluster: e.cluster, weak: e.weak });
-  }
-  return out;
-}
-
-export interface SegmentResult { text: string; match?: MatchResult }
-
-/** Pecah teks jadi segmen highlight — aman buat React */
-export function segment(text: string): SegmentResult[] {
-  const out: SegmentResult[] = [];
-  let pos = 0;
-  for (const m of findMatches(text)) {
-    if (m.start > pos) out.push({ text: text.slice(pos, m.start) });
-    out.push({ text: m.text, match: m });
-    pos = m.end;
-  }
-  if (pos < text.length) out.push({ text: text.slice(pos) });
-  return out;
-}
+export const segment = core.segment;
