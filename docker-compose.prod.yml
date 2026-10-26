@@ -89,7 +89,9 @@ services:
         condition: service_healthy
 
   artikel-service:
-    build: ./backend/services/artikel
+    build:
+      context: .
+      dockerfile: backend/services/artikel/Dockerfile
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://mih:mih@db:5432/mih

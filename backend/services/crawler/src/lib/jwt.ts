@@ -1,36 +1,14 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
-import { config } from "../config";
+/**
+ * Pembungkus crawler: shared/jwt.ts + secret dari config service ini.
+ * `verifyHeader: false` mempertahankan perilaku crawler sebelumnya
+ * (tidak memeriksa header alg/typ).
+ */
 
-interface JwtPayload {
-  userId: number;
-  role: string;
-  iat: number;
-  exp: number;
-}
+import { config } from "../config";
+import { verifyToken as verify, type JwtPayload } from "../../../../../shared/jwt";
+
+export type { JwtPayload };
 
 export function verifyToken(token: string): JwtPayload | null {
-  const parts = token.split(".");
-  if (parts.length !== 3) return null;
-  const [h, p, sig] = parts;
-
-  function sign(data: string): string {
-    return createHmac("sha256", config.jwtSecret).update(data).digest("base64url");
-  }
-
-  const expected = Buffer.from(sign(`${h}.${p}`));
-  const actual = Buffer.from(sig);
-  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
-
-  let payload: JwtPayload;
-  try {
-    payload = JSON.parse(Buffer.from(p, "base64url").toString());
-  } catch {
-    return null;
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  if (payload.exp <= now) return null;
-  if (!payload.userId || !payload.role) return null;
-
-  return payload;
+  return verify(token, config.jwtSecret, { verifyHeader: false });
 }
