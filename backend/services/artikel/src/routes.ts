@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { pool } from "./db";
+import { parseListParams } from "../../../../shared/list-params";
 import { requireAuth } from "./middleware/auth";
+import { pushEq, pushIlike } from "../../../../shared/query-filters";
 
 const router = Router();
 
@@ -16,33 +18,20 @@ router.get("/api/health", (_req, res) => {
 // ---- GET /api/artikel/early-warning ----
 // List early warning articles with filters: sumber, sentimen, alert, q, page
 router.get("/api/artikel/early-warning", requireAuth, async (req, res) => {
-  const page = Math.max(1, Number(req.query.page) || 1);
-  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
-  const offset = (page - 1) * limit;
-  const sumber = String(req.query.sumber || "").trim();
-  const sentimen = String(req.query.sentimen || "").trim();
+  const { page, limit, offset, str } = parseListParams(req.query);
+  const sumber = str("sumber");
+  const sentimen = str("sentimen");
   const alertFilter = req.query.alert;
-  const q = String(req.query.q || "").trim();
+  const q = str("q");
 
   const conditions: string[] = [];
   const params: unknown[] = [];
   let paramIdx = 1;
 
-  if (sumber) {
-    conditions.push(`sumber = $${paramIdx++}`);
-    params.push(sumber);
-  }
-  if (sentimen) {
-    conditions.push(`sentimen = $${paramIdx++}`);
-    params.push(sentimen);
-  }
-  if (alertFilter === "true") {
-    conditions.push("is_alert = true");
-  }
-  if (q) {
-    conditions.push(`judul ILIKE $${paramIdx++}`);
-    params.push(`%${q}%`);
-  }
+  paramIdx = pushEq(conditions, params, paramIdx, "sumber", sumber);
+  paramIdx = pushEq(conditions, params, paramIdx, "sentimen", sentimen);
+  if (alertFilter === "true") conditions.push("is_alert = true");
+  paramIdx = pushIlike(conditions, params, paramIdx, "judul", q);
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 

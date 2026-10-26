@@ -228,6 +228,36 @@ function InternalLayout({
   );
 }
 
+/** Rute portal publik — dipakai saat belum login maupun sudah login
+ *  (hanya elemen layout pembungkusnya yang berbeda). */
+const portalRoutes = [
+  <Route key="home" path="/" element={<PortalHome />} />,
+  <Route key="berita" path="/berita" element={<PortalNews />} />,
+  <Route key="berita-slug" path="/berita/:slug" element={<NewsDetailRoute />} />,
+  <Route key="publikasi" path="/publikasi" element={<PortalPublication />} />,
+  <Route
+    key="publikasi-slug"
+    path="/publikasi/:slug"
+    element={<PublicationDetailRoute />}
+  />,
+  <Route key="profil-kedeputian" path="/profil/kedeputian" element={<PortalDeputy />} />,
+  <Route key="profil-unit" path="/profil/unit/:slug" element={<UnitRoute />} />,
+  <Route key="profil-pimpinan" path="/profil/pimpinan/:slug" element={<LeaderRoute />} />,
+  <Route key="layanan" path="/layanan/:slug" element={<ServiceRoute />} />,
+  <Route key="early-warning" path="/dashboard/early-warning" element={<EarlyWarning />} />,
+  <Route key="renstra-pmp" path="/renstra-pmp" element={<RenstraPmp />} />,
+  <Route
+    key="renstra-digital"
+    path="/renstra-digital"
+    element={
+      <Suspense fallback={<div className="p-8">Memuat Renstra Digital…</div>}>
+        <RenstraDigital />
+      </Suspense>
+    }
+  />,
+  <Route key="dashboard-slug" path="/dashboard/:slug" element={<DashboardRoute />} />,
+];
+
 export default function App() {
   /* ===Development By Pass Login === 
   const FRONTEND_ONLY = true;
@@ -282,19 +312,7 @@ export default function App() {
     return (
       <Routes>
         <Route element={<PortalLayout />}>
-          <Route path="/" element={<PortalHome />} />
-          <Route path="/berita" element={<PortalNews />} />
-          <Route path="/berita/:slug" element={<NewsDetailRoute />} />
-          <Route path="/publikasi" element={<PortalPublication />} />
-          <Route path="/publikasi/:slug" element={<PublicationDetailRoute />} />
-          <Route path="/profil/kedeputian" element={<PortalDeputy />} />
-          <Route path="/profil/unit/:slug" element={<UnitRoute />} />
-          <Route path="/profil/pimpinan/:slug" element={<LeaderRoute />} />
-          <Route path="/layanan/:slug" element={<ServiceRoute />} />
-          <Route path="/dashboard/early-warning" element={<EarlyWarning />} />
-          <Route path="/renstra-pmp" element={<RenstraPmp />} />
-          <Route path="/renstra-digital" element={<Suspense fallback={<div className="p-8">Memuat Renstra Digital…</div>}><RenstraDigital /></Suspense>} />
-          <Route path="/dashboard/:slug" element={<DashboardRoute />} />
+          {portalRoutes}
         </Route>
         <Route path="/login" element={<Login onLogin={setUser} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -310,19 +328,7 @@ export default function App() {
       {/* Landing page tetap tampil saat login — menu/tautan private ikut muncul.
           Dashboard route di sini agar halaman dashboard memakai chrome portal. */}
       <Route element={<PortalLayout user={user} onLogout={handleLogout} />}>
-        <Route path="/" element={<PortalHome />} />
-        <Route path="/berita" element={<PortalNews />} />
-        <Route path="/berita/:slug" element={<NewsDetailRoute />} />
-        <Route path="/publikasi" element={<PortalPublication />} />
-        <Route path="/publikasi/:slug" element={<PublicationDetailRoute />} />
-        <Route path="/profil/kedeputian" element={<PortalDeputy />} />
-        <Route path="/profil/unit/:slug" element={<UnitRoute />} />
-        <Route path="/profil/pimpinan/:slug" element={<LeaderRoute />} />
-        <Route path="/layanan/:slug" element={<ServiceRoute />} />
-        <Route path="/dashboard/early-warning" element={<EarlyWarning />} />
-        <Route path="/renstra-pmp" element={<RenstraPmp />} />
-        <Route path="/renstra-digital" element={<Suspense fallback={<div className="p-8">Memuat Renstra Digital…</div>}><RenstraDigital /></Suspense>} />
-        <Route path="/dashboard/:slug" element={<DashboardRoute />} />
+        {portalRoutes}
       </Route>
 
       {/* Aplikasi internal (dari header landing via "Agen AI") */}

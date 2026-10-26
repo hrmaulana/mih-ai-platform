@@ -1,41 +1,27 @@
-import { Link } from "react-router-dom";
 import { usePortalContent } from "./usePortalContent";
+import {
+  PortalArticleHero,
+  PortalExcerpt,
+  PortalListSection,
+  PortalNotFound,
+} from "./portalPages";
 
 /*
  * Daftar Publikasi + Detail Publikasi — reproduksi `renderPublicationListPage()`
  * dan `renderPublicationDetailPage()` dari PMP Portal.html.
  *
  * Rute: `/publikasi` (list) dan `/publikasi/:slug` (detail).
+ * Potongan tata letak bersama ada di `portalPages.tsx`.
  */
 export function PortalPublication() {
   const { publications } = usePortalContent();
   return (
-    <section className="section" style={{ background: "white" }}>
-      <div className="container">
-        <p className="eyebrow">Publikasi Resmi</p>
-        <h1 className="page-title">Publikasi</h1>
-        <div className="grid-2" style={{ marginTop: 40 }}>
-          {publications.map((item) => (
-            <Link to={`/publikasi/${item.slug}`} className="card" key={item.slug}>
-              <img
-                className="headline-image"
-                style={{ height: 260 }}
-                src={item.image}
-                alt={item.title}
-                loading="lazy"
-              />
-              <div className="card-body">
-                <p className="meta">
-                  {item.date} - {item.category}
-                </p>
-                <h2 style={{ fontSize: "1.28rem", color: "var(--slate-900)" }}>{item.title}</h2>
-                <p className="muted">{item.excerpt}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </section>
+    <PortalListSection
+      eyebrow="Publikasi Resmi"
+      title="Publikasi"
+      items={publications}
+      hrefFor={(item) => `/publikasi/${item.slug}`}
+    />
   );
 }
 
@@ -45,48 +31,35 @@ export function PortalPublicationDetail({ slug }: { slug: string }) {
 
   if (!item) {
     return (
-      <section className="section">
-        <div className="container empty-page">
-          <p className="eyebrow">PMP Portal</p>
-          <h1 className="page-title">Publikasi tidak ditemukan</h1>
-          <p className="muted" style={{ maxWidth: 720, fontSize: "1.05rem", lineHeight: 1.8 }}>
-            Silakan pilih publikasi dari daftar Publikasi.
-          </p>
-        </div>
-      </section>
+      <PortalNotFound
+        title="Publikasi tidak ditemukan"
+        hint="Silakan pilih publikasi dari daftar Publikasi."
+      />
     );
   }
 
   return (
     <>
-      <section className="article-hero section" style={{ background: "linear-gradient(135deg, #0f172a, #1e293b)" }}>
-        <div className="container">
-          <p className="language-pill" style={{ background: "var(--amber-500)" }}>
-            {item.category}
-          </p>
-          <h1 style={{ maxWidth: 960, fontSize: "clamp(2rem,4.5vw,3.8rem)", lineHeight: 1.08 }}>
-            {item.title}
-          </h1>
-          <p>
-            {item.date} • Oleh {item.author}
-          </p>
-        </div>
-      </section>
+      <PortalArticleHero
+        category={item.category}
+        title={item.title}
+        meta={`${item.date} • Oleh ${item.author}`}
+        sectionStyle={{ background: "linear-gradient(135deg, #0f172a, #1e293b)" }}
+        pillStyle={{ background: "var(--amber-500)" }}
+      />
       <section className="section" style={{ background: "white", paddingTop: 0 }}>
         <div className="container">
           <img className="article-image" src={item.image} alt={item.title} />
           <div className="article-body">
-            <p
+            <PortalExcerpt
               style={{
-                padding: 22,
-                borderRadius: "var(--radius-lg)",
                 background: "#f0fdf4",
                 color: "#166534",
                 borderLeft: "5px solid #22c55e",
               }}
             >
               {item.excerpt}
-            </p>
+            </PortalExcerpt>
             <div className="download-box">
               <div className="download-info">
                 <span className="download-icon">📄</span>

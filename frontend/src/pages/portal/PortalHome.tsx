@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { externalLinks } from "../../data/portal";
 import { usePortalAuth } from "./PortalLayout";
+import { PortalEmbedSection } from "./portalPages";
 import { usePortalContent } from "./usePortalContent";
 import EarlyWarningWidget from "../../components/portal/EarlyWarningWidget";
 
@@ -218,102 +219,16 @@ export default function PortalHome() {
         </div>
       </section>
 
-      {/* ===== Embed EWS Inflasi ===== */}
-      <section
-        className="section"
-        style={{ background: "#f8fafc", paddingTop: 20, paddingBottom: 40 }}
-      >
-        <div className="container">
-          <div style={{ marginBottom: 24 }}>
-            <h2
-              style={{
-                margin: 0,
-                color: "var(--slate-900)",
-                fontSize: "1.6rem",
-                fontWeight: 700,
-              }}
-            >
-              Early Warning System Inflasi
-            </h2>
-          </div>
-          <div
-            className="card"
-            style={{
-              overflow: "hidden",
-              borderRadius: "var(--radius-lg)",
-              boxShadow: "var(--shadow-sm)",
-              border: "1px solid var(--slate-200)",
-            }}
-          >
-            <div
-              style={{
-                position: "relative",
-                width: "100%",
-                aspectRatio: "16/9",
-                background: "var(--slate-100)",
-              }}
-            >
-              <iframe
-                src="https://ewsinflasi.bappenas.go.id/inflasi.html"
-                width="100%"
-                height="100%"
-                style={{ border: "none", display: "block" }}
-                allowFullScreen
-                title="EWS Inflasi"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+      <PortalEmbedSection
+        title="Early Warning System Inflasi"
+        src="https://ewsinflasi.bappenas.go.id/inflasi.html"
+      />
 
-      {/* ===== Embed Dashboard Hilirisasi — login only ===== */}
       {user && (
-      <section
-        className="section"
-        style={{ background: "#f8fafc", paddingTop: 20, paddingBottom: 40 }}
-      >
-        <div className="container">
-          <div style={{ marginBottom: 24 }}>
-            <h2
-              style={{
-                margin: 0,
-                color: "var(--slate-900)",
-                fontSize: "1.6rem",
-                fontWeight: 700,
-              }}
-            >
-              Hilirisasi 18 Komoditas Prioritas
-            </h2>
-          </div>
-          <div
-            className="card"
-            style={{
-              overflow: "hidden",
-              borderRadius: "var(--radius-lg)",
-              boxShadow: "var(--shadow-sm)",
-              border: "1px solid var(--slate-200)",
-            }}
-          >
-            <div
-              style={{
-                position: "relative",
-                width: "100%",
-                aspectRatio: "16/9",
-                background: "var(--slate-100)",
-              }}
-            >
-              <iframe
-                src="https://hilirisasi.tatakelolapmp.workers.dev"
-                width="100%"
-                height="100%"
-                style={{ border: "none", display: "block" }}
-                allowFullScreen
-                title="Hilirisasi 18 Komoditas Prioritas"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+        <PortalEmbedSection
+          title="Hilirisasi 18 Komoditas Prioritas"
+          src="https://hilirisasi.tatakelolapmp.workers.dev"
+        />
       )}
 
       {/* ===== Early Warning Widget ===== */}

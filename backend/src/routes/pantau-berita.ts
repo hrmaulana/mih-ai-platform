@@ -10,84 +10,10 @@ import { Router } from "express"
 import { pool } from "../db"
 import { requireLogin, requireAdmin } from "../middleware/sessionAuth"
 import { scoreArticle, hashContent } from "../services/berita-scorer"
+import { crawlFeeds } from "../lib/newsCrawl";
+import { parseRSSItems } from "../lib/rss";
 
 const router = Router()
-
-// ===== Helper: Parse R =====
-
-/**
- * Parse RSS/atom XML items dari berbagai sumber
- */
-function parseRSSItems(
-  xml: string,
-  sumber: string,
-): { judul: string; url: string; konten: string; publishedAt: Date | null }[] {
-  const items: { judul: string; url: string; konten: string; publishedAt: Date | null }[] = []
-
-  // Coba cari <item> (RSS 2.0)
-  const itemRegex = /<item>([\s\S]*?)<\/item>/gi
-  let match: RegExpExecArray | null
-
-  while ((match = itemRegex.exec(xml)) !== null) {
-    const block = match[1]
-    const title = extractTag(block, "title")
-    const link = extractTag(block, "link")
-    const description = extractTag(block, "description")
-    const pubDate = extractTag(block, "pubDate")
-
-    if (!title && !link) continue
-
-    items.push({
-      judul: title?.trim() ?? "(tanpa judul)",
-      url: link?.trim() ?? "",
-      konten: description?.trim() ?? "",
-      publishedAt: pubDate ? new Date(pubDate.trim()) : null,
-    })
-  }
-
-  // Jika tidak ada <item>, coba <entry> (Atom)
-  if (items.length === 0) {
-    const entryRegex = /<entry>([\s\S]*?)<\/entry>/gi
-    while ((match = entryRegex.exec(xml)) !== null) {
-      const block = match[1]
-      const title = extractTag(block, "title")
-
-      // Atom: link href
-      const linkMatch = /<link[^>]*href="([^"]*)"/i.exec(block)
-      const link = linkMatch ? linkMatch[1] : null
-
-      const content = extractTag(block, "content") || extractTag(block, "summary")
-      const pubDate = extractTag(block, "published") || extractTag(block, "updated")
-
-      if (!title && !link) continue
-
-      items.push({
-        judul: title?.trim() ?? "(tanpa judul)",
-        url: link?.trim() ?? "",
-        konten: content?.trim() ?? "",
-        publishedAt: pubDate ? new Date(pubDate.trim()) : null,
-      })
-    }
-  }
-
-  return items
-}
-
-function extractTag(xml: string, tag: string): string | null {
-  const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i")
-  const m = regex.exec(xml)
-  if (!m) return null
-
-  return m[1]
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .trim()
-}
-
 // ===== Endpoints =====
 
 /**
@@ -349,134 +275,89 @@ router.post("/pantau-berita/review", requireAdmin, async (req, res) => {
  * Admin only — tapi kita reuse feeds yang sama
  */
 router.post("/pantau-berita/crawl", requireAdmin, async (req, res) => {
-  const feeds: { sumber: string; url: string }[] = [
-    { sumber: "cnbc", url: "https://www.cnbcindonesia.com/rss" },
-    { sumber: "katadata", url: "https://katadata.co.id/rss" },
-    { sumber: "antara", url: "https://www.antaranews.com/rss/ekonomi" },
-    { sumber: "tempo-bisnis", url: "https://rss.tempo.co/bisnis" },
-    { sumber: "tempo-nasional", url: "https://rss.tempo.co/nasional" },
-    { sumber: "liputan6", url: "https://feed.liputan6.com/rss/bisnis" },
-    { sumber: "economist", url: "https://www.economist.com/business/rss.xml" },
-    { sumber: "politico", url: "https://www.politico.com/rss/politicopicks.xml" },
-  ]
-
-  let newArticles = 0
-  let errors = 0
-  let skipped = 0
-
-  await Promise.all(
-    feeds.map(async (feed) => {
-      try {
-        const rssResponse = await fetch(feed.url, {
-          signal: AbortSignal.timeout(15_000),
-        })
-        if (!rssResponse.ok) {
-          errors++
-          return
-        }
-        const rssText = await rssResponse.text()
-        const items = parseRSSItems(rssText, feed.sumber).slice(0, 10)
-        if (items.length === 0) {
-          errors++
-          return
-        }
-
-        const batchSize = 5
-        for (let i = 0; i < items.length; i += batchSize) {
-          const batch = items.slice(i, i + batchSize)
-          await Promise.all(
-            batch.map(async (item) => {
-              try {
+  let skipped = 0;
+  const { processed: newArticles, errors } = await crawlFeeds({
+    onItem: async (item, feed) => {
                 const url_hash = hashContent(item.url)
-                const content_hash = hashContent(`${item.judul}\n${item.konten ?? ""}`)
+      const content_hash = hashContent(`${item.judul}\n${item.konten ?? ""}`)
 
-                // Dedup by url_hash
-                const dup = await pool.query(
-                  "SELECT 1 FROM articles WHERE url_hash = $1",
-                  [url_hash],
-                )
-                if ((dup.rowCount ?? 0) > 0) {
-                  skipped++
-                  return
-                }
-
-                // Dedup by content_hash (konten mirip walau URL beda)
-                const dupContent = await pool.query(
-                  "SELECT 1 FROM articles WHERE content_hash = $1",
-                  [content_hash],
-                )
-                if ((dupContent.rowCount ?? 0) > 0) {
-                  skipped++
-                  return
-                }
-
-                // Score article
-                const score = await scoreArticle(item.judul, item.konten ?? "")
-
-                // Insert article
-                const articleResult = await pool.query(
-                  `INSERT INTO articles (url, url_hash, content_hash, sumber, judul, isi, ringkasan, bahasa, terbit_at)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, 'id', $8)
-                   ON CONFLICT (url) DO NOTHING
-                   RETURNING id`,
-                  [
-                    item.url,
-                    url_hash,
-                    content_hash,
-                    feed.sumber,
-                    item.judul,
-                    item.konten ?? "",
-                    item.konten ? item.konten.slice(0, 300) : "",
-                    item.publishedAt ?? new Date(),
-                  ],
-                )
-
-                if ((articleResult.rowCount ?? 0) === 0) {
-                  skipped++
-                  return
-                }
-
-                const articleId = articleResult.rows[0].id
-
-                // Insert scores
-                await pool.query(
-                  `INSERT INTO article_scores
-                     (article_id, model, prompt_version, relevansi_llm, relevansi_final,
-                      lantai_diterapkan, dampak, sentimen_teks, klaster_pkpn, topik, alasan,
-                      keyword_highlight, lexicon_score, confidence, perlu_review_manual, status)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'ok')
-                   ON CONFLICT (article_id, model, prompt_version) DO NOTHING`,
-                  [
-                    articleId,
-                    score.model,
-                    score.prompt_version,
-                    score.relevansi_llm,
-                    score.relevansi_final,
-                    score.lantai_diterapkan,
-                    score.dampak,
-                    score.sentimen_teks,
-                    score.klaster_pkpn,
-                    score.topik,
-                    score.alasan,
-                    JSON.stringify(score.keyword_highlight),
-                    score.lexicon_score,
-                    score.confidence,
-                    score.perlu_review_manual,
-                  ],
-                )
-
-                newArticles++
-              } catch {
-                errors++
-              }
-            }),
-          )
-        }
-      } catch {
-        errors++
+      // Dedup by url_hash
+      const dup = await pool.query(
+        "SELECT 1 FROM articles WHERE url_hash = $1",
+        [url_hash],
+      )
+      if ((dup.rowCount ?? 0) > 0) {
+        skipped++
+        return
       }
-    }),
-  )
+
+      // Dedup by content_hash (konten mirip walau URL beda)
+      const dupContent = await pool.query(
+        "SELECT 1 FROM articles WHERE content_hash = $1",
+        [content_hash],
+      )
+      if ((dupContent.rowCount ?? 0) > 0) {
+        skipped++
+        return
+      }
+
+      // Score article
+      const score = await scoreArticle(item.judul, item.konten ?? "")
+
+      // Insert article
+      const articleResult = await pool.query(
+        `INSERT INTO articles (url, url_hash, content_hash, sumber, judul, isi, ringkasan, bahasa, terbit_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'id', $8)
+         ON CONFLICT (url) DO NOTHING
+         RETURNING id`,
+        [
+          item.url,
+          url_hash,
+          content_hash,
+          feed.sumber,
+          item.judul,
+          item.konten ?? "",
+          item.konten ? item.konten.slice(0, 300) : "",
+          item.publishedAt ?? new Date(),
+        ],
+      )
+
+      if ((articleResult.rowCount ?? 0) === 0) {
+        skipped++
+        return
+      }
+
+      const articleId = articleResult.rows[0].id
+
+      // Insert scores
+      await pool.query(
+        `INSERT INTO article_scores
+           (article_id, model, prompt_version, relevansi_llm, relevansi_final,
+            lantai_diterapkan, dampak, sentimen_teks, klaster_pkpn, topik, alasan,
+            keyword_highlight, lexicon_score, confidence, perlu_review_manual, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'ok')
+         ON CONFLICT (article_id, model, prompt_version) DO NOTHING`,
+        [
+          articleId,
+          score.model,
+          score.prompt_version,
+          score.relevansi_llm,
+          score.relevansi_final,
+          score.lantai_diterapkan,
+          score.dampak,
+          score.sentimen_teks,
+          score.klaster_pkpn,
+          score.topik,
+          score.alasan,
+          JSON.stringify(score.keyword_highlight),
+          score.lexicon_score,
+          score.confidence,
+          score.perlu_review_manual,
+        ],
+      )
+
+    },
+  });
 
   res.json({ success: true, new_articles: newArticles, errors, skipped })
 })

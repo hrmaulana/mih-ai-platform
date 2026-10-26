@@ -194,14 +194,10 @@ export async function search(question: string, history: ChatTurn[] = []): Promis
   return searchLocal(query);
 }
 
-export async function ask(
-  question: string,
-  history: ChatTurn[] = []
-): Promise<{ answer: string; citations: Citation[] }> {
-  const { labeled, context, isComparison } = await search(question, history);
-  const answer = await generateAnswer(question, context, history, isComparison);
-  const cited = extractCitedIndices(answer);
-  const citations: Citation[] = labeled
+/** Sitasi = dokumen yang labelnya benar-benar dikutip di dalam jawaban. */
+function buildCitations(labeled: SearchRow[], text: string): Citation[] {
+  const cited = extractCitedIndices(text);
+  return labeled
     .filter((r) => cited.has(r.label))
     .map((r) => ({
       label: r.label,
@@ -211,7 +207,15 @@ export async function ask(
       page_or_slide: r.page_or_slide,
       section_title: r.section_title,
     }));
-  return { answer, citations };
+}
+
+export async function ask(
+  question: string,
+  history: ChatTurn[] = []
+): Promise<{ answer: string; citations: Citation[] }> {
+  const { labeled, context, isComparison } = await search(question, history);
+  const answer = await generateAnswer(question, context, history, isComparison);
+  return { answer, citations: buildCitations(labeled, answer) };
 }
 
 export async function* askStream(
@@ -224,16 +228,5 @@ export async function* askStream(
     text += delta;
     yield { delta };
   }
-  const cited = extractCitedIndices(text);
-  const citations: Citation[] = labeled
-    .filter((r) => cited.has(r.label))
-    .map((r) => ({
-      label: r.label,
-      document_id: r.document_id,
-      filename: r.filename,
-      file_type: r.file_type,
-      page_or_slide: r.page_or_slide,
-      section_title: r.section_title,
-    }));
-  yield { citations };
+  yield { citations: buildCitations(labeled, text) };
 }

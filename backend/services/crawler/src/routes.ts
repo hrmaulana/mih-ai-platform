@@ -5,20 +5,13 @@ import { parseRSSItems } from "./lib/rss";
 import { calculateLexiconScore } from "./lib/lexicon";
 import { analyzeSentimentLLM } from "./lib/llm-sentiment";
 import { detectClusters, relevanceFloor } from "./lib/highlight";
+import { parseListParams } from "../../../../shared/list-params";
 
 const router = Router();
 
-// ---- Feed list ----
-const FEEDS: { sumber: string; url: string }[] = [
-  { sumber: "cnbc", url: "https://www.cnbcindonesia.com/rss" },
-  { sumber: "katadata", url: "https://katadata.co.id/rss" },
-  { sumber: "antara", url: "https://www.antaranews.com/rss/ekonomi" },
-  { sumber: "tempo-bisnis", url: "https://rss.tempo.co/bisnis" },
-  { sumber: "tempo-nasional", url: "https://rss.tempo.co/nasional" },
-  { sumber: "liputan6", url: "https://feed.liputan6.com/rss/bisnis" },
-  { sumber: "economist", url: "https://www.economist.com/business/rss.xml" },
-  { sumber: "politico", url: "https://www.politico.com/rss/politicopicks.xml" },
-];
+// ---- Feed list (kanonik di shared/news-feeds.ts) ----
+import { RSS_FEEDS as FEEDS } from "../../../../shared/news-feeds";
+import { pushEq, pushIlike } from "../../../../shared/query-filters";
 
 // ---- POST /crawl ----
 // Trigger crawl RSS feeds — authenticated (admin only)
@@ -148,29 +141,18 @@ router.post("/crawl", requireAdmin, async (req, res) => {
 // ---- GET /articles ----
 // Get articles list — authenticated
 router.get("/articles", requireAuth, async (req, res) => {
-  const page = Math.max(1, Number(req.query.page) || 1);
-  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
-  const offset = (page - 1) * limit;
-  const sumber = String(req.query.sumber || "").trim();
-  const sentimen = String(req.query.sentimen || "").trim();
-  const q = String(req.query.q || "").trim();
+  const { page, limit, offset, str } = parseListParams(req.query);
+  const sumber = str("sumber");
+  const sentimen = str("sentimen");
+  const q = str("q");
 
   const conditions: string[] = [];
   const params: unknown[] = [];
   let paramIdx = 1;
 
-  if (sumber) {
-    conditions.push(`sumber = $${paramIdx++}`);
-    params.push(sumber);
-  }
-  if (sentimen) {
-    conditions.push(`sentimen = $${paramIdx++}`);
-    params.push(sentimen);
-  }
-  if (q) {
-    conditions.push(`judul ILIKE $${paramIdx++}`);
-    params.push(`%${q}%`);
-  }
+  paramIdx = pushEq(conditions, params, paramIdx, "sumber", sumber);
+  paramIdx = pushEq(conditions, params, paramIdx, "sentimen", sentimen);
+  paramIdx = pushIlike(conditions, params, paramIdx, "judul", q);
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
