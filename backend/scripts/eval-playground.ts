@@ -13,11 +13,11 @@
  *
  * Catatan: harness ini memakai jalur yang sama dengan UI (services/rag.ask → search + generateAnswer).
  */
-import { harusMenolak, JAWABAN_TIDAK_DITEMUKAN, search, isComparisonQuery, extractCitedIndices } from "../src/services/rag";
+import {   search, isComparisonQuery, extractCitedIndices } from "../src/services/rag";
 import { config } from "../src/config";
 import { writeFileSync } from "node:fs";
 
-type Jenis = "jawab" | "tolak" | "banding";
+type Jenis = "jawab" | "tolak" | "banding" | "analitik";
 
 interface Kasus {
   id: string;
@@ -27,6 +27,7 @@ interface Kasus {
   pertanyaan: string;
   /** Fakta pembeda yang harus muncul di jawaban benar (string apa adanya dari dokumen). */
   fakta?: string;
+  catatan?: string;
   /** Id dokumen sumber yang diharapkan (untuk mengukur retrieval per dokumen). */
   dokumen?: number;
 }
@@ -153,13 +154,26 @@ interface Hasil {
   jawabanCuplikan: string;
 }
 
+// Penjaga abstain hanya ada pada versi yang sudah di-merge. Harness terjadwal mengukur
+// kode yang BENAR-BENAR berjalan di produksi, jadi impornya opsional (bukan paksaan).
+// Frasa penolakan resmi (sama dengan prompt) — dipakai harness dalam mode penolakan paksa.
+const PESAN_TIDAK_DITEMUKAN = "Saya tidak menemukan informasi tersebut dalam dokumen yang tersedia.";
+
+let harusMenolakOpsional: (h: any) => boolean = () => false;
+try {
+  const ragMod: any = await import("../src/services/rag");
+  if (typeof ragMod.harusMenolak === "function") harusMenolakOpsional = ragMod.harusMenolak;
+} catch {
+  /* versi produksi belum punya penjaga; lanjut tanpa itu */
+}
+
 async function jalankanKasus(k: Kasus): Promise<Hasil> {
   const t0 = Date.now();
   const pencarian = await search(k.pertanyaan, []);
   const { labeled, context, isComparison } = pencarian;
   // Jalur yang sama dengan aplikasi: penjaga abstain berlaku sebelum memanggil LLM.
-  const jawaban = harusMenolak(pencarian)
-    ? JAWABAN_TIDAK_DITEMUKAN
+  const jawaban = harusMenolakOpsional(pencarian)
+    ? PESAN_TIDAK_DITEMUKAN
     : (await generateAnswer(k.pertanyaan, context, [], isComparison)).trim();
   const detik = (Date.now() - t0) / 1000;
 
@@ -363,6 +377,39 @@ async function main(): Promise<void> {
       2
     )
   );
+
+// S2: simpan hasil ke DB bila diminta (dijalankan di dalam kontainer agar kunci tidak keluar).
+if (process.env.EVAL_SIMPAN === "1") {
+  const { pool } = await import("../src/db");
+  const r = await pool.query(
+    `INSERT INTO eval_runs (model, prompt_variant, jumlah_kasus, agregat, catatan)
+     VALUES ($1, $2, $3, $4::jsonb, $5) RETURNING id`,
+    [
+      config.openaiModel,
+      config.promptVariant,
+      hasil.length,
+      JSON.stringify(agregat),
+      [
+        `hybrid=${(config as any).ragHybrid ?? "n/a"}`,
+        `maxsim=${(config as any).ragMaxSim ?? "n/a"}`,
+        `rewrite=${(config as any).ragRewrite ?? "n/a"}`,
+        `abstain=${(config as any).ragAbstainMin ?? "n/a"}`,
+        `ekspansi=${(config as any).ragEkspansi ?? "n/a"}`,
+      ].join(" "),
+    ],
+  );
+  const runId = Number(r.rows[0].id);
+  for (const h of hasil as any[]) {
+    await pool.query(
+      `INSERT INTO eval_cases (run_id, kasus_id, jenis, putusan, peringkat_fakta, skor_terbaik, detik, jawaban)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (run_id, kasus_id) DO NOTHING`,
+      [runId, String(h.id), String(h.jenis), String(h.putusan), h.peringkatFakta ?? null, h.skorTerbaik ?? null, h.detik ?? null, String(h.jawaban ?? "").slice(0, 4000)],
+    );
+  }
+  // Simpan 30 run terakhir saja agar tabel tidak tumbuh tanpa batas.
+  await pool.query(`DELETE FROM eval_runs WHERE id NOT IN (SELECT id FROM eval_runs ORDER BY kapan DESC LIMIT 30)`);
+  console.log(`tersimpan: run ${runId} (${hasil.length} kasus)`);
+}
 
   console.log("\n=== AGREGAT ===");
   console.log(JSON.stringify(agregat, null, 2));
