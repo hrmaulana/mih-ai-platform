@@ -25,8 +25,12 @@ test("isComparisonQuery mendeteksi perbandingan & entitas ganda", () => {
 });
 
 test("selectSystemPrompt memilih prompt perbandingan", () => {
-  expect(selectSystemPrompt(true)).toBe(COMPARISON_SYSTEM_PROMPT);
-  expect(selectSystemPrompt(false)).toBe(SYSTEM_PROMPT);
+  // Varian eksplisit 1 = prompt dasar (kontrak lama).
+  expect(selectSystemPrompt(true, 1)).toBe(COMPARISON_SYSTEM_PROMPT);
+  expect(selectSystemPrompt(false, 1)).toBe(SYSTEM_PROMPT);
+  // Default kini varian 3 (mode analitik): dasar + catatan analitis.
+  expect(selectSystemPrompt(false)).toContain(SYSTEM_PROMPT);
+  expect(selectSystemPrompt(false)).toContain("bertindak sebagai analis");
   expect(COMPARISON_SYSTEM_PROMPT).not.toBe(SYSTEM_PROMPT);
   expect(COMPARISON_SYSTEM_PROMPT).toContain("INSTRUKSI KHUSUS UNTUK PERTANYAAN PERBANDINGAN");
 });

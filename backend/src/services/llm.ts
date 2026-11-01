@@ -33,8 +33,27 @@ export const COMPARISON_SYSTEM_PROMPT = [
   "Atau gunakan daftar poin per aspek bila tabel tidak cocok.",
 ].join("\n");
 
-export function selectSystemPrompt(isComparison: boolean): string {
-  return isComparison ? COMPARISON_SYSTEM_PROMPT : SYSTEM_PROMPT;
+/** Varian 2: mencegah penolakan keliru ketika konteks sebenarnya memuat bukti relevan. */
+export const OVERREFUSAL_ADDENDUM = [
+  "Catatan penting: bila konteks memuat angka atau pernyataan yang relevan dengan pertanyaan — walaupun hanya sebagian, atau hanya dari satu dokumen — JAWABLAH memakai angka/pernyataan itu beserta rujukan [n].",
+  "Kalimat penolakan HANYA dipakai bila konteks benar-benar tidak membahas topik yang ditanyakan.",
+].join("\n");
+
+/** Varian 3: mode ANALITIK — boleh menghitung/menalar dari angka konteks, tanpa fakta luar. */
+export const ANALITIK_ADDENDUM = [
+  "Anda juga bertindak sebagai analis. Selain mengutip, Anda DIDORONG untuk:",
+  "1. menghitung (selisih, jumlah, persentase, rasio) dari angka-angka yang ADA di konteks;",
+  "2. membandingkan angka antar dokumen/periode yang ada di konteks;",
+  "3. menyimpulkan arah (naik/turun/melandai) dari angka yang tersedia;",
+  "4. mensintesis beberapa bagian konteks menjadi kesimpulan.",
+  "Aturan yang tidak boleh dilanggar: setiap angka yang Anda sebutkan harus berasal dari konteks, atau merupakan hasil hitungan dari angka konteks — sebutkan angka pembentuknya agar bisa ditelusuri.",
+  "Jangan menambahkan fakta, angka, atau prakiraan dari luar konteks. Bila konteks hanya memuat sebagian, katakan bagian mana yang tersedia dan bagian mana yang tidak.",
+].join("\n");
+
+export function selectSystemPrompt(isComparison: boolean, variant: number = config.promptVariant): string {
+  const dasar = isComparison ? COMPARISON_SYSTEM_PROMPT : SYSTEM_PROMPT;
+  if (variant >= 3) return `${dasar}\n${ANALITIK_ADDENDUM}`;
+  return variant >= 2 ? `${dasar}\n${OVERREFUSAL_ADDENDUM}` : dasar;
 }
 
 export async function generateAnswer(
@@ -108,5 +127,45 @@ export async function* streamAnswer(
     } catch (err: any) {
       console.warn(`LLM provider ${provider.model} gagal, fallback: ${err.message}`);
     }
+  }
+}
+
+
+/** Bersihkan keluaran penulisan ulang kueri agar aman dipakai sebagai kueri pencarian. */
+export function bersihkanKueri(teks: string): string {
+  const t = (teks || "").replace(/[`"'\n\r]+/g, " ").replace(/\s+/g, " ").trim();
+  if (t.length < 3) return "";
+  return t.split(" ").slice(0, 25).join(" ");
+}
+
+/**
+ * Ubah pertanyaan percakapan menjadi kueri bergaya dokumen resmi.
+ * Selisih kosakata inilah penyebab utama chunk sumber tidak terambil (baseline 31 Okt:
+ * batas atas retrieval 100% bila kueri memakai kosakata dokumen, tetapi hanya 58,3%
+ * dengan pertanyaan asli).
+ */
+export async function tulisUlangKueri(pertanyaan: string): Promise<string> {
+  if (config.llmProvider === "mock") return pertanyaan;
+  try {
+    const client = new OpenAI({ apiKey: config.openaiApiKey });
+    const resp = await client.chat.completions.create({
+      model: config.openaiModel,
+      temperature: 0,
+      max_tokens: 60,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Ubah pertanyaan pengguna menjadi kueri pencarian dokumen resmi perencanaan pembangunan Indonesia. " +
+            "Keluarkan HANYA kuerinya (maksimal 25 kata), sertakan istilah teknis dan angka penting, tanpa penjelasan.",
+        },
+        { role: "user", content: pertanyaan },
+      ],
+    });
+    const hasil = bersihkanKueri(resp.choices[0]?.message?.content ?? "");
+    return hasil || pertanyaan;
+  } catch (err) {
+    console.warn("penulisan ulang kueri gagal, memakai pertanyaan asli:", (err as Error).message);
+    return pertanyaan;
   }
 }

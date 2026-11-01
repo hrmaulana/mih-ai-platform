@@ -1,7 +1,8 @@
 import { pool } from "../db";
 import { config } from "../config";
-import { generateAnswer, streamAnswer, type ChatTurn } from "./llm";
+import { generateAnswer, streamAnswer, tulisUlangKueri, type ChatTurn } from "./llm";
 import { embedTexts } from "./embeddings";
+import { decideAbstain, lexicalScore, pecahKalimat, perluTulisUlang, rrfFuseBanyak, skorMaxSim, varianKueri } from "./retrieval";
 
 export interface Citation {
   label: number;
@@ -26,6 +27,8 @@ export interface SearchResult {
   labeled: SearchRow[];
   context: string;
   isComparison: boolean;
+  /** Kemiripan vektor terbaik (0..1); null bila jalur webhook (skor tidak diketahui). */
+  bestScore?: number | null;
 }
 
 export function extractCitedIndices(answer: string): Set<number> {
@@ -115,13 +118,29 @@ export function buildContext(labeled: SearchRow[], groupByDocument: boolean): st
 
 const RAG_WEBHOOK_TIMEOUT_MS = 30_000;
 
+/** Jawaban penolakan deterministik (harus sama dengan frasa di system prompt). */
+export const JAWABAN_TIDAK_DITEMUKAN =
+  "Saya tidak menemukan informasi tersebut dalam dokumen yang tersedia.";
+
+/**
+ * Penjaga abstain: bila kemiripan terbaik di bawah ambang, jangan tanya LLM sama sekali.
+ * Hanya berlaku pada jalur lokal (skor diketahui); jalur webhook tidak dipaksa menolak.
+ */
+export function harusMenolak(hasil: SearchResult): boolean {
+  if (config.ragAbstainMin <= 0) return false;
+  if (hasil.bestScore == null) return false;
+  return decideAbstain(hasil.bestScore, config.ragAbstainMin);
+}
+
 async function searchLocal(question: string): Promise<SearchResult> {
   const [qv] = await embedTexts([question]);
   const SELECT = `SELECT c.id, c.content, c.page_or_slide, c.section_title,
-                         d.id AS document_id, d.filename, d.file_type
+                         d.id AS document_id, d.filename, d.file_type,
+                         1 - (c.embedding <=> $1::vector) AS sim
                     FROM chunks c JOIN documents d ON d.id = c.document_id
                    WHERE c.is_outdated = FALSE AND d.status = 'completed'`;
   let rows: any[];
+  let bestScore: number | null = null;
   if (isComparisonQuery(question)) {
     // Perbandingan: cari lebih luas, ragamkan per dokumen, lalu jamin tiap
     // tahun/entitas yang disebut (mis. RKP 2026 & 2027) punya chunk sendiri.
@@ -129,6 +148,7 @@ async function searchLocal(question: string): Promise<SearchResult> {
       `${SELECT} ORDER BY c.embedding <=> $1::vector LIMIT $2`,
       [JSON.stringify(qv), config.vectorK + 6]
     );
+    bestScore = wide.length ? Number(wide[0].sim) : null;
     rows = capPerDocument(wide, 5);
     const seen = new Set<number>(rows.map((r) => r.id));
     for (const year of extractYears(question)) {
@@ -150,16 +170,86 @@ async function searchLocal(question: string): Promise<SearchResult> {
     }
     rows = rows.slice(0, config.vectorK + 2 * extractYears(question).size);
   } else {
-    const { rows: top } = await pool.query(
-      `${SELECT} ORDER BY c.embedding <=> $1::vector LIMIT $2`,
-      [JSON.stringify(qv), config.vectorK]
-    );
-    rows = top;
+    const kandidat = Math.max(config.ragCandidateK, config.vectorK * 3);
+    const cariVektor = async (qv: any, jumlah: number) => {
+      const { rows } = await pool.query(
+        `${SELECT} ORDER BY c.embedding <=> $1::vector LIMIT $2`,
+        [JSON.stringify(qv), jumlah]
+      );
+      return rows;
+    };
+
+    // Tahap 1 — pertanyaan asli. Skor ini juga yang dipakai penjaga abstain,
+    // sehingga tulis-ulang tidak bisa menyamarkan pertanyaan di luar korpus.
+    const [qvAsli] = await embedTexts([question]);
+    const vektorAsli = await cariVektor(qvAsli, kandidat);
+    bestScore = vektorAsli.length ? Number(vektorAsli[0].sim) : null;
+
+    let leksikal: any[] = [];
+    if (config.ragHybrid) {
+      const { rows: lex } = await pool.query(
+        `SELECT c.id, c.content, c.page_or_slide, c.section_title,
+                d.id AS document_id, d.filename, d.file_type,
+                ts_rank_cd(to_tsvector('indonesian', c.content), plainto_tsquery('indonesian', $1)) AS lex
+           FROM chunks c JOIN documents d ON d.id = c.document_id
+          WHERE c.is_outdated = FALSE AND d.status = 'completed'
+            AND to_tsvector('indonesian', c.content) @@ plainto_tsquery('indonesian', $1)
+          ORDER BY lex DESC LIMIT $2`,
+        [question, kandidat]
+      );
+      leksikal = lex;
+    }
+
+    // Tahap 2 — tulis-ulang kueri HANYA bila tahap 1 lemah (hemat 1 panggilan LLM
+    // dan menghindari efek samping pada kasus yang sudah benar).
+    let vektorTambahan: any[] = [];
+    if (config.ragRewrite && perluTulisUlang(bestScore, leksikal.length, config.ragRewriteMin)) {
+      const kueriBaru = await tulisUlangKueri(question);
+      if (kueriBaru && kueriBaru !== question) {
+        const [qvBaru] = await embedTexts([kueriBaru]);
+        vektorTambahan = await cariVektor(qvBaru, kandidat);
+      }
+    }
+
+    const sumberKandidat = [vektorAsli, vektorTambahan, leksikal];
+    const gabung = new Map<number, any>();
+    for (const list of sumberKandidat) {
+      for (const r of list) if (!gabung.has(Number(r.id))) gabung.set(Number(r.id), r);
+    }
+    // Peringkat ulang tahap 1: RRF + cakupan token leksikal.
+    const skorRrf = rrfFuseBanyak(sumberKandidat);
+    const pra = [...gabung.values()].map((r) => ({
+      r,
+      skor: (skorRrf.get(Number(r.id)) ?? 0) + 0.5 * lexicalScore(question, String(r.content)),
+    }));
+    pra.sort((a, b) => b.skor - a.skor);
+
+    // Peringkat ulang tahap 2 (MaxSim) — default mati: diukur menambah latensi tanpa manfaat.
+    if (config.ragMaxSim && pra.length > 0) {
+      const M = Math.min(config.ragMaxSimKandidat, pra.length);
+      const kalimatPer = pra.slice(0, M).map((x) => pecahKalimat(String(x.r.content)));
+      const datar: string[] = [];
+      const peta: number[] = [];
+      kalimatPer.forEach((ks, i) =>
+        ks.forEach((k) => {
+          datar.push(k);
+          peta.push(i);
+        })
+      );
+      if (datar.length > 0) {
+        const vektorKalimat = await embedTexts(datar);
+        const perKandidat: number[][][] = kalimatPer.map(() => []);
+        vektorKalimat.forEach((v: any, j: number) => perKandidat[peta[j]].push(v as number[]));
+        for (let i = 0; i < M; i++) pra[i].skor += 0.6 * skorMaxSim(qvAsli as number[], perKandidat[i]);
+        pra.sort((a, b) => b.skor - a.skor);
+      }
+    }
+    rows = pra.slice(0, config.vectorK).map((x) => x.r);
   }
-  const labeled = rows.map((r, i) => ({ ...r, label: i + 1 }));
+ const labeled = rows.map((r, i) => ({ ...r, label: i + 1 }));
   const isComparison = isComparisonQuery(question);
   const context = buildContext(labeled, isComparison);
-  return { labeled, context, isComparison };
+  return { labeled, context, isComparison, bestScore };
 }
 
 export async function searchViaWebhook(question: string): Promise<SearchResult> {
@@ -213,7 +303,9 @@ export async function ask(
   question: string,
   history: ChatTurn[] = []
 ): Promise<{ answer: string; citations: Citation[] }> {
-  const { labeled, context, isComparison } = await search(question, history);
+  const hasil = await search(question, history);
+  if (harusMenolak(hasil)) return { answer: JAWABAN_TIDAK_DITEMUKAN, citations: [] };
+  const { labeled, context, isComparison } = hasil;
   const answer = await generateAnswer(question, context, history, isComparison);
   return { answer, citations: buildCitations(labeled, answer) };
 }
@@ -222,7 +314,13 @@ export async function* askStream(
   question: string,
   history: ChatTurn[] = []
 ): AsyncGenerator<{ delta: string } | { citations: Citation[] }> {
-  const { labeled, context, isComparison } = await search(question, history);
+  const hasil = await search(question, history);
+  if (harusMenolak(hasil)) {
+    yield { delta: JAWABAN_TIDAK_DITEMUKAN };
+    yield { citations: [] };
+    return;
+  }
+  const { labeled, context, isComparison } = hasil;
   let text = "";
   for await (const delta of streamAnswer(question, context, history, isComparison)) {
     text += delta;

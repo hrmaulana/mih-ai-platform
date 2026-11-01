@@ -4,10 +4,15 @@ import { createApp } from "../src/app";
 import { testDb, applySchema, truncateAll } from "./helpers";
 import { hashToken } from "../src/lib/token";
 import { hashPassword } from "../src/lib/passwords";
+import { config } from "../src/config";
 
 const app = createApp();
 
 beforeAll(async () => {
+  // Tes ini menguji pipa (token -> retrieval -> jawaban -> sitasi), bukan kebijakan abstain.
+  // Fixture memakai vektor nol sehingga kemiripan 0; penjaga abstain dimatikan di sini
+  // dan diuji tersendiri di tests/retrieval.test.ts.
+  config.ragAbstainMin = 0;
   await applySchema();
   await truncateAll();
   const zero = JSON.stringify(Array.from({ length: 1536 }, () => 0));

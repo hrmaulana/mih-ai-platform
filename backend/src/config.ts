@@ -20,5 +20,25 @@ export const config = {
   vectorK: Number(process.env.VECTOR_K ?? 8),
   chatHistoryTurns: Number(process.env.CHAT_HISTORY_TURNS ?? 8),
   ragWebhookUrl: process.env.N8N_RAG_WEBHOOK_URL ?? "",
+  // Retrieval hibrida (vektor + leksikal, digabung RRF lalu diperingkat ulang).
+  ragHybrid: (process.env.RAG_HYBRID ?? "true") !== "false",
+  // Ekspansi kueri: beberapa varian kueri di-embed lalu digabung (RRF).
+  // Rerank tahap 2: MaxSim antar-kalimat memakai embedding yang sama.
+  // MaxSim diukur 31 Okt: menambah ~3,3 s latensi TANPA menaikkan hit@8/dokumen-terambil -> default MATI.
+  ragMaxSim: (process.env.RAG_MAXSIM ?? "false") === "true",
+  ragMaxSimKandidat: Number(process.env.RAG_MAXSIM_KANDIDAT ?? 12),
+  // Penulisan ulang kueri oleh LLM (1 panggilan kecil) sebelum pencarian vektor.
+  // Tulis-ulang kueri diukur 31 Okt: hit@8 58,3%->66,7% (bagus) TETAPI dokumen-terambil
+  // 66,7%->58,3%, salah sitasi 0%->8,3%, latensi +2 s -> default MATI (pakai RAG_REWRITE=true).
+  ragRewrite: (process.env.RAG_REWRITE ?? "false") === "true",
+  // Ambang "pencarian awal lemah" untuk memicu tulis-ulang kueri bersyarat.
+  ragRewriteMin: Number(process.env.RAG_REWRITE_MIN ?? 0.65),
+  ragEkspansi: (process.env.RAG_EKSPANSI ?? "false") === "true",
+  // Kandidat yang diambil dari tiap sumber sebelum penggabungan.
+  ragCandidateK: Number(process.env.RAG_CANDIDATE_K ?? 30),
+  // Penjaga deterministik: skor kemiripan terbaik di bawah ambang ini -> paksa menolak.
+  ragAbstainMin: Number(process.env.RAG_ABSTAIN_MIN ?? 0.58),
+  // Varian system prompt: 1 = bawaan, 2 = tambahan anti-penolakan-keliru (uji A/B).
+  promptVariant: Number(process.env.PROMPT_VARIANT ?? 3),
   llmProvider: process.env.LLM_PROVIDER ?? "openai", // "openai" | "mock"
 };
