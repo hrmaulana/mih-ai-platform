@@ -215,7 +215,7 @@ export default function Playground() {
             </div>
           )}
           {messages.map((m, i) => (
-            <MessageBubble key={m.id === -1 || m.id === -2 ? `tmp-${i}` : m.id} message={m} />
+            <MessageBubble key={m.id === -1 || m.id === -2 ? `tmp-${i}` : m.id} message={m} riwayat={messages} />
           ))}
           {streaming && <StreamingCursor />}
         </div>
@@ -241,7 +241,7 @@ export default function Playground() {
   );
 }
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageBubble({ message, riwayat }: { message: ChatMessage; riwayat: ChatMessage[] }) {
   const isUser = message.role === "user";
   return (
     <div className={`chat-fade-in mx-auto flex max-w-3xl ${isUser ? "justify-end" : "justify-start"}`}>
@@ -253,6 +253,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         ) : (
           <Card interactive={false} className="p-5">
             <MarkdownContent content={message.content || "…"} citations={message.citations} />
+              <NilaiJawaban pesan={message} riwayat={riwayat} />
             {message.citations.length > 0 && (
               <div className="mt-4 border-t border-slate-100 pt-3">
                 <p className="text-xs font-semibold text-slate-500">Rujukan</p>
@@ -361,6 +362,65 @@ function MarkdownContent({ content, citations = [] }: { content: string; citatio
       >
         {linkifyCitations(content, citations)}
       </ReactMarkdown>
+    </div>
+  );
+}
+
+// S1 loop pertumbuhan: nilai jawaban (membantu / tidak membantu) + alasan singkat.
+// Yang dikirim: pertanyaan pengguna yang memicu jawaban ini, isi jawaban, sitasi, dan nilainya.
+function NilaiJawaban({ pesan, riwayat }: { pesan: ChatMessage; riwayat: ChatMessage[] }) {
+  const [nilai, setNilai] = useState<1 | -1 | null>(null);
+  const [alasan, setAlasan] = useState("");
+  const [status, setStatus] = useState<"" | "kirim" | "ok" | "gagal">("");
+
+  if (pesan.role !== "assistant" || pesan.id < 0) return null;
+
+  const sebelum = riwayat.slice(0, Math.max(0, riwayat.indexOf(pesan)));
+  const pertanyaan = [...sebelum].reverse().find((m) => m.role === "user")?.content ?? "";
+
+  async function kirim(n: 1 | -1) {
+    if (status === "kirim") return;
+    setNilai(n);
+    setStatus("kirim");
+    try {
+      await api.feedback({ pertanyaan, jawaban: pesan.content, sitasi: pesan.citations ?? [], nilai: n, alasan: alasan.trim() || undefined });
+      setStatus("ok");
+    } catch {
+      setStatus("gagal");
+    }
+  }
+
+  if (status === "ok") {
+    return <div style={{ marginTop: "0.35rem", fontSize: "0.78rem", opacity: 0.75 }}>Terima kasih - penilaian Anda tersimpan.</div>;
+  }
+
+  return (
+    <div style={{ marginTop: "0.35rem", display: "flex", gap: "0.4rem", alignItems: "center", flexWrap: "wrap", fontSize: "0.8rem" }}>
+      <span style={{ opacity: 0.7 }}>Jawaban ini:</span>
+      <button
+        type="button"
+        onClick={() => kirim(1)}
+        disabled={status === "kirim"}
+        style={{ cursor: "pointer", fontWeight: nilai === 1 ? 700 : 400 }}
+      >
+        Membantu
+      </button>
+      <button
+        type="button"
+        onClick={() => kirim(-1)}
+        disabled={status === "kirim"}
+        style={{ cursor: "pointer", fontWeight: nilai === -1 ? 700 : 400 }}
+      >
+        Tidak membantu
+      </button>
+      <input
+        type="text"
+        value={alasan}
+        onChange={(e) => setAlasan(e.target.value.slice(0, 500))}
+        placeholder="Alasan singkat (opsional)"
+        style={{ flex: "1 1 12rem", minWidth: "8rem", fontSize: "0.8rem" }}
+      />
+      {status === "gagal" && <span style={{ color: "#b00" }}>gagal tersimpan, coba lagi</span>}
     </div>
   );
 }

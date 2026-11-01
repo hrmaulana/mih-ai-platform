@@ -99,6 +99,22 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  feedback: (muatan: {
+    pertanyaan: string;
+    jawaban: string;
+    sitasi: Citation[];
+    nilai: 1 | -1;
+    alasan?: string;
+    model?: string;
+    skorTerbaik?: number | null;
+    promptVariant?: number | null;
+  }) =>
+    req<{ ok: boolean; id: number }>("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(muatan),
+    }),
+
   login: (email: string, password: string) => {
     const result = req<LoginResult>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
     result.then(r => setToken(r.token)).catch(() => {});
