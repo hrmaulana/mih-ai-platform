@@ -487,10 +487,17 @@ export async function ask(
     }
   }
 
-  // Penjaga angka: jawaban yang seluruh angkanya tak ada di konteks = mengarang.
+  // Penjaga angka: seluruh angka jawaban harus muncul di chunk yang DISITASI,
+  // bukan sekadar di seluruh konteks. Kasus T11: "Trans Sumatra" ada di chunk
+  // tersitasi, tetapi angka "1.021 km" tidak — dulu lolos karena konteks luas
+  // memuat angka serupa di dokumen lain.
   // Perbandingan dikecualikan karena selisih sah dihitung dari dua angka konteks.
   if (!isComparison) {
-    const hilang = angkaTakDidukung(teks, context);
+    const teksSitasi = sitasi
+      .map((c) => String(labeled.find((l) => l.label === c.label)?.content ?? ""))
+      .join("\n");
+    const dasar = teksSitasi.trim() ? teksSitasi : context;
+    const hilang = angkaTakDidukung(teks, dasar);
     if (hilang.length > 0) {
       return {
         answer: JAWABAN_TIDAK_DITEMUKAN,
