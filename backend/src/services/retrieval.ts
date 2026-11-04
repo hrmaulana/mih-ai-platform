@@ -51,6 +51,21 @@ export function rrfFuse(vektor: { id: number }[], leksikal: { id: number }[], k 
 }
 
 /** Penjaga deterministik: bila tidak ada hasil atau skor terbaik di bawah ambang, paksa menolak. */
+/**
+ * Abstain terkalibrasi: vektor rendah TAPI bukti leksikal kuat → tetap jawab.
+ * Mengurangi "menolak padahal sumbernya ada" tanpa membiarkan halusinasi.
+ */
+export function decideAbstainKalibrasi(
+  bestScore: number | null,
+  lexScore: number,
+  ambang: number,
+  ambangLex: number,
+): boolean {
+  if (bestScore === null) return false;
+  if (bestScore >= ambang) return false;
+  return lexScore < ambangLex;
+}
+
 export function decideAbstain(bestScore: number | null, ambang: number): boolean {
   if (bestScore === null || Number.isNaN(bestScore)) return true;
   return bestScore < ambang;

@@ -2,7 +2,8 @@ import { pool } from "../db";
 import { config } from "../config";
 import { generateAnswerDenganUsage, streamAnswer, tulisUlangKueri, type ChatTurn } from "./llm";
 import { embedTexts } from "./embeddings";
-import { decideAbstain, lexicalScore, pecahKalimat, perluTulisUlang, rrfFuseBanyak, skorMaxSim, varianKueri } from "./retrieval";
+import { decideAbstainKalibrasi, lexicalScore, pecahKalimat, perluTulisUlang, rrfFuseBanyak, skorMaxSim, varianKueri } from "./retrieval";
+import { pilihRerank } from "./rerank";
 
 export interface Citation {
   label: number;
@@ -29,6 +30,8 @@ export interface SearchResult {
   isComparison: boolean;
   /** Kemiripan vektor terbaik (0..1); null bila jalur webhook (skor tidak diketahui). */
   bestScore?: number | null;
+  /** Cakupan leksikal terbaik (0..1) — dasar kalibrasi abstain. */
+  lexScore?: number;
 }
 
 export function extractCitedIndices(answer: string): Set<number> {
@@ -129,7 +132,12 @@ export const JAWABAN_TIDAK_DITEMUKAN =
 export function harusMenolak(hasil: SearchResult): boolean {
   if (config.ragAbstainMin <= 0) return false;
   if (hasil.bestScore == null) return false;
-  return decideAbstain(hasil.bestScore, config.ragAbstainMin);
+  return decideAbstainKalibrasi(
+    hasil.bestScore,
+    hasil.lexScore ?? 0,
+    config.ragAbstainMin,
+    config.ragAbstainLexMin,
+  );
 }
 
 async function searchLocal(question: string): Promise<SearchResult> {
@@ -244,12 +252,29 @@ async function searchLocal(question: string): Promise<SearchResult> {
         pra.sort((a, b) => b.skor - a.skor);
       }
     }
-    rows = pra.slice(0, config.vectorK).map((x) => x.r);
+    if (config.ragRerank) {
+      rows = pilihRerank(
+        pra.map((x) => ({
+          ...x.r,
+          skorAwal: x.skor,
+          skorLeksikal: lexicalScore(question, String(x.r.content)),
+        })),
+        question,
+        config.vectorK,
+      );
+    } else {
+      rows = pra.slice(0, config.vectorK).map((x) => x.r);
+    }
   }
- const labeled = rows.map((r, i) => ({ ...r, label: i + 1 }));
+  const labeled = rows.map((r, i) => ({ ...r, label: i + 1 }));
   const isComparison = isComparisonQuery(question);
   const context = buildContext(labeled, isComparison);
-  return { labeled, context, isComparison, bestScore };
+  // Cakupan leksikal terbaik = sinyal kalibrasi abstain (lihat harusMenolak).
+  const lexScore = labeled.reduce(
+    (maks, r) => Math.max(maks, lexicalScore(question, String(r.content))),
+    0,
+  );
+  return { labeled, context, isComparison, bestScore, lexScore };
 }
 
 export async function searchViaWebhook(question: string): Promise<SearchResult> {
@@ -318,13 +343,27 @@ export async function ask(
   }
   const { labeled, context, isComparison } = hasil;
   const jawab = await generateAnswerDenganUsage(question, context, history, isComparison);
+
+  // Verifikasi sitasi: jawaban substantif tanpa satu pun [n] → minta ulang sekali
+  // dengan instruksi tegas menyitasi. Menyerang "sitasi tidak lengkap" (50%).
+  let teks = jawab.text;
+  let sitasi = buildCitations(labeled, teks);
+  if (sitasi.length === 0 && teks !== JAWABAN_TIDAK_DITEMUKAN && labeled.length > 0) {
+    const ulang = await generateAnswerDenganUsage(question, context, history, isComparison, true);
+    const sitasiUlang = buildCitations(labeled, ulang.text);
+    if (sitasiUlang.length > 0) {
+      teks = ulang.text;
+      sitasi = sitasiUlang;
+    }
+  }
+
   return {
-    answer: jawab.text,
-    citations: buildCitations(labeled, jawab.text),
+    answer: teks,
+    citations: sitasi,
     model: jawab.model,
     tokenIn: jawab.tokenIn,
     tokenOut: jawab.tokenOut,
-    menolak: jawab.text === JAWABAN_TIDAK_DITEMUKAN,
+    menolak: teks === JAWABAN_TIDAK_DITEMUKAN,
   };
 }
 

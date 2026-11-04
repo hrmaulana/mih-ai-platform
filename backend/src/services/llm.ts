@@ -71,7 +71,8 @@ export async function generateAnswerDenganUsage(
   question: string,
   context: string,
   history: ChatTurn[] = [],
-  isComparison: boolean = false
+  isComparison: boolean = false,
+  paksaSitasi: boolean = false
 ): Promise<JawabanDenganUsage> {
   if (config.llmProvider === "mock") {
     return {
@@ -87,7 +88,14 @@ export async function generateAnswerDenganUsage(
   const resp = await client.chat.completions.create({
     model,
     messages: [
-      { role: "system", content: selectSystemPrompt(isComparison) },
+      {
+        role: "system",
+        content:
+          selectSystemPrompt(isComparison) +
+          (paksaSitasi
+            ? "\n\nWAJIB: setiap angka, target, dan kesimpulan harus diikuti sitasi [n] dari konteks. Jangan menulis kalimat faktual tanpa [n]."
+            : ""),
+      },
       ...history,
       { role: "user", content: `Pertanyaan: ${question}\n\nKonteks:\n${context}` },
     ],

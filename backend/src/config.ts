@@ -38,6 +38,10 @@ export const config = {
   ragCandidateK: Number(process.env.RAG_CANDIDATE_K ?? 30),
   // Penjaga deterministik: skor kemiripan terbaik di bawah ambang ini -> paksa menolak.
   ragAbstainMin: Number(process.env.RAG_ABSTAIN_MIN ?? 0.58),
+  // Kalibrasi abstain: bila bukti leksikal kuat, jangan menolak walau skor vektor rendah.
+  ragAbstainLexMin: Number(process.env.RAG_ABSTAIN_LEX_MIN ?? 0.12),
+  // Reranker ringan (sim + leksikal + entitas + judul + MMR).
+  ragRerank: (process.env.RAG_RERANK ?? "true") !== "false",
   // Varian system prompt: 1 = bawaan, 2 = tambahan anti-penolakan-keliru (uji A/B).
   promptVariant: Number(process.env.PROMPT_VARIANT ?? 3),
   llmProvider: process.env.LLM_PROVIDER ?? "openai", // "openai" | "mock"
