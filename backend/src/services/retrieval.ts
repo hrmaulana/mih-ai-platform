@@ -63,7 +63,49 @@ export function decideAbstainKalibrasi(
 ): boolean {
   if (bestScore === null) return false;
   if (bestScore >= ambang) return false;
-  return lexScore < ambangLex;
+  // Jalur leksikal hanya untuk kasus yang benar-benar dekat ambang. Tanpa syarat
+  // jarak ini, pertanyaan di luar korpus (mis. T4, skor 0,569) ikut dijawab.
+  const dekatAmbang = bestScore >= ambang - 0.06;
+  return !(dekatAmbang && lexScore >= ambangLex);
+}
+
+/**
+ * Sinonim & akronim domain. Pertanyaan memakai istilah percakapan/akronim,
+ * sedangkan dokumen memakai istilah resmi (dan sebaliknya) — inilah penyebab
+ * chunk sumber tidak terambil pada kasus seperti "BI rate" dan "KNEKS".
+ */
+const SINONIM: Array<[RegExp, string]> = [
+  [/\bbi\s*rate\b/i, "suku bunga acuan BI suku bunga kebijakan"],
+  [/\bsuku bunga acuan\b/i, "BI rate suku bunga kebijakan"],
+  [/\bkneks\b/i, "Komite Nasional Ekonomi dan Keuangan Syariah"],
+  [/\biknb\b/i, "industri keuangan non bank"],
+  [/\breer\b/i, "nilai tukar efektif riil"],
+  [/\b(?:lpe)\b/i, "laju pertumbuhan ekonomi"],
+  [/\btpt\b/i, "tingkat pengangguran terbuka"],
+  [/\bgini\b/i, "rasio gini ketimpangan"],
+  [/\bfront[\s-]?loading\b/i, "percepatan realisasi belanja negara di awal tahun"],
+  [/\bikp\b/i, "indeks kualitas lingkungan hidup"],
+  [/\bimh\b/i, "indeks modal manusia"],
+  [/\bppn\b/i, "pajak pertambahan nilai"],
+];
+
+/** Kueri tambahan hasil pemetaan sinonim (kosong bila tidak ada yang cocok). */
+export function varianSinonim(question: string): string[] {
+  const hasil = new Set<string>();
+  const tambahan: string[] = [];
+  for (const [pola, padanan] of SINONIM) {
+    if (pola.test(question)) tambahan.push(padanan);
+  }
+  if (tambahan.length > 0) {
+    hasil.add(`${question} ${tambahan.join(" ")}`);
+    // Kueri gaya dokumen saja (tanpa kata tanya) — lebih dekat ke isi chunk.
+    const inti = question
+      .replace(/\b(berapa|bagaimana|apa|apakah|kapan|mengapa|siapa|pada|di|dari|yang|itu)\b/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (inti.length >= 8) hasil.add(`${inti} ${tambahan.join(" ")}`);
+  }
+  return [...hasil];
 }
 
 export function decideAbstain(bestScore: number | null, ambang: number): boolean {

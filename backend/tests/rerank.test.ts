@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { entitasAngka, pilihRerank, skorEntitas, skorJudul, skorKandidat, tokenPenting } from "../src/services/rerank";
-import { decideAbstainKalibrasi } from "../src/services/retrieval";
+import { cakupanToken, entitasAngka, pilihRerank, skorEntitas, skorJudul, skorKandidat, tokenPenting } from "../src/services/rerank";
+import { decideAbstainKalibrasi, varianSinonim } from "../src/services/retrieval";
 
 const kandidat = (isi: Partial<{ id: number; content: string; filename: string; sim: number; document_id: number }>) => ({
   id: isi.id ?? 1,
@@ -65,8 +65,13 @@ describe("pemilihan hasil (MMR + batas per dokumen)", () => {
 });
 
 describe("kalibrasi abstain", () => {
-  test("vektor rendah tapi leksikal kuat → jangan menolak", () => {
-    expect(decideAbstainKalibrasi(0.5, 0.4, 0.58, 0.12)).toBe(false);
+  test("vektor sedikit di bawah ambang + leksikal kuat → jangan menolak", () => {
+    expect(decideAbstainKalibrasi(0.55, 0.4, 0.58, 0.12)).toBe(false);
+  });
+
+  test("vektor jauh di bawah ambang → tetap menolak walau leksikal kuat", () => {
+    // Kasus T4 (Perjanjian Paris): 0,569 dulu lolos; sekarang jarak ke ambang wajib ≤0,06.
+    expect(decideAbstainKalibrasi(0.5, 0.4, 0.58, 0.12)).toBe(true);
   });
 
   test("vektor rendah dan leksikal lemah → menolak", () => {
@@ -75,5 +80,33 @@ describe("kalibrasi abstain", () => {
 
   test("vektor cukup tinggi → tidak menolak", () => {
     expect(decideAbstainKalibrasi(0.7, 0, 0.58, 0.12)).toBe(false);
+  });
+});
+
+describe("ekspansi sinonim", () => {
+  test("akronim diperluas ke bentuk resmi", () => {
+    const v = varianSinonim("Apa peran KNEKS dalam keuangan syariah?");
+    expect(v.join(" ").toLowerCase()).toContain("komite nasional ekonomi dan keuangan syariah");
+  });
+
+  test("istilah percakapan dipetakan ke istilah dokumen", () => {
+    const v = varianSinonim("Pada level berapa BI rate ditetapkan?");
+    expect(v.join(" ").toLowerCase()).toContain("suku bunga acuan");
+  });
+
+  test("pertanyaan tanpa sinonim tidak menghasilkan varian", () => {
+    expect(varianSinonim("Berapa jumlah penduduk Indonesia?")).toEqual([]);
+  });
+});
+
+describe("cakupan token (anti-mengarang)", () => {
+  test("pertanyaan di luar korpus punya cakupan rendah", () => {
+    const isi = "Target pertumbuhan ekonomi 2026 sebesar 5,35 persen";
+    expect(cakupanToken("Apa isi Perjanjian Paris mengenai emisi karbon 2050?", isi)).toBeLessThan(0.3);
+  });
+
+  test("pertanyaan yang relevan punya cakupan tinggi", () => {
+    const isi = "Target pertumbuhan ekonomi 2026 sebesar 5,35 persen";
+    expect(cakupanToken("Berapa target pertumbuhan ekonomi 2026?", isi)).toBeGreaterThanOrEqual(0.5);
   });
 });

@@ -42,6 +42,8 @@ export const config = {
   ragAbstainMin: Number(process.env.RAG_ABSTAIN_MIN ?? 0.58),
   // Kalibrasi abstain: bila bukti leksikal kuat, jangan menolak walau skor vektor rendah.
   ragAbstainLexMin: Number(process.env.RAG_ABSTAIN_LEX_MIN ?? 0.12),
+  // Porsi minimum token penting yang harus muncul di konteks saat skor vektor rendah.
+  ragAbstainCakupan: Number(process.env.RAG_ABSTAIN_CAKUPAN ?? 0.3),
   // Reranker ringan (sim + leksikal + entitas + judul + MMR).
   ragRerank: (process.env.RAG_RERANK ?? "true") !== "false",
   // Varian system prompt: 1 = bawaan, 2 = tambahan anti-penolakan-keliru (uji A/B).

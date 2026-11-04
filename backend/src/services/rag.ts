@@ -2,8 +2,8 @@ import { pool } from "../db";
 import { config } from "../config";
 import { generateAnswerDenganUsage, streamAnswer, tulisUlangKueri, type ChatTurn } from "./llm";
 import { embedTexts } from "./embeddings";
-import { decideAbstainKalibrasi, lexicalScore, pecahKalimat, perluTulisUlang, rrfFuseBanyak, skorMaxSim, varianKueri } from "./retrieval";
-import { pilihRerank } from "./rerank";
+import { decideAbstainKalibrasi, lexicalScore, pecahKalimat, perluTulisUlang, rrfFuseBanyak, skorMaxSim, varianKueri, varianSinonim } from "./retrieval";
+import { cakupanToken, pilihRerank } from "./rerank";
 
 export interface Citation {
   label: number;
@@ -32,6 +32,8 @@ export interface SearchResult {
   bestScore?: number | null;
   /** Cakupan leksikal terbaik (0..1) — dasar kalibrasi abstain. */
   lexScore?: number;
+  /** Porsi token penting pertanyaan yang muncul di konteks terbaik (0..1). */
+  cakupan?: number;
 }
 
 export function extractCitedIndices(answer: string): Set<number> {
@@ -132,12 +134,44 @@ export const JAWABAN_TIDAK_DITEMUKAN =
 export function harusMenolak(hasil: SearchResult): boolean {
   if (config.ragAbstainMin <= 0) return false;
   if (hasil.bestScore == null) return false;
+  // Pertanyaan di luar korpus (mis. Perjanjian Paris 2050): token khasnya tidak
+  // muncul di chunk mana pun → tolak walau leksikal "terlihat" kuat.
+  if (hasil.bestScore < config.ragAbstainMin && (hasil.cakupan ?? 1) < config.ragAbstainCakupan) {
+    return true;
+  }
   return decideAbstainKalibrasi(
     hasil.bestScore,
     hasil.lexScore ?? 0,
     config.ragAbstainMin,
     config.ragAbstainLexMin,
   );
+}
+
+/**
+ * Ambil chunk tetangga (index ±1) dari beberapa hasil teratas dokumen yang sama.
+ * Murni pelengkap konteks — tidak menambah label baru bila sudah ada.
+ */
+async function tambahTetangga(rows: any[], maks: number): Promise<any[]> {
+  if (rows.length === 0 || maks <= 0) return rows;
+  const terpilih = rows.slice(0, 3);
+  const idTerpilih = terpilih.map((r) => Number(r.id));
+  const { rows: tetangga } = await pool.query(
+    `SELECT c.id, c.content, c.page_or_slide, c.section_title,
+            d.id AS document_id, d.filename, d.file_type
+       FROM chunks c
+       JOIN chunks asal ON asal.document_id = c.document_id
+            AND c.chunk_index BETWEEN asal.chunk_index - 1 AND asal.chunk_index + 1
+       JOIN documents d ON d.id = c.document_id
+      WHERE asal.id = ANY($1::bigint[])
+        AND c.id <> ALL($1::bigint[])
+        AND c.is_outdated = FALSE AND d.status = 'completed'
+      ORDER BY c.document_id, c.chunk_index
+      LIMIT $2`,
+    [idTerpilih, maks],
+  );
+  const ada = new Set(rows.map((r) => Number(r.id)));
+  const tambahan = tetangga.filter((t) => !ada.has(Number(t.id)));
+  return [...rows, ...tambahan];
 }
 
 async function searchLocal(question: string): Promise<SearchResult> {
@@ -224,10 +258,10 @@ async function searchLocal(question: string): Promise<SearchResult> {
     // ikut terambil sebelum rerank.
     let vektorVarian: any[] = [];
     if (config.ragVarian) {
-      const varian = varianKueri(question)
+      const varian = [...varianKueri(question), ...varianSinonim(question)]
         .map((v) => v.trim())
         .filter((v) => v && v !== question)
-        .slice(0, 3);
+        .slice(0, 4);
       if (varian.length > 0) {
         const vektorV = await embedTexts(varian);
         for (let i = 0; i < varian.length; i++) {
@@ -282,6 +316,9 @@ async function searchLocal(question: string): Promise<SearchResult> {
     } else {
       rows = pra.slice(0, config.vectorK).map((x) => x.r);
     }
+    // Fakta sering terbelah antar-chunk (mis. tabel & narasinya). Tambahkan
+    // tetangga terdekat dari chunk teratas agar jawaban tidak setengah.
+    rows = await tambahTetangga(rows, 4);
   }
   const labeled = rows.map((r, i) => ({ ...r, label: i + 1 }));
   const isComparison = isComparisonQuery(question);
@@ -291,7 +328,10 @@ async function searchLocal(question: string): Promise<SearchResult> {
     (maks, r) => Math.max(maks, lexicalScore(question, String(r.content))),
     0,
   );
-  return { labeled, context, isComparison, bestScore, lexScore };
+  const cakupan = labeled
+    .slice(0, 5)
+    .reduce((maks, r) => Math.max(maks, cakupanToken(question, String(r.content))), 0);
+  return { labeled, context, isComparison, bestScore, lexScore, cakupan };
 }
 
 export async function searchViaWebhook(question: string): Promise<SearchResult> {

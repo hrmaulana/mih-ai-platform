@@ -72,6 +72,15 @@ export function skorEntitas(kueri: string, kandidat: Kandidat): number {
 }
 
 /** 0..1: kecocokan token penting dengan judul dokumen/bagian (bukan isi). */
+/** 0..1: porsi token penting pertanyaan yang benar-benar muncul di isi chunk. */
+export function cakupanToken(kueri: string, isi: string): number {
+  const penting = tokenPenting(kueri);
+  if (penting.length === 0) return 0;
+  const teks = isi.toLowerCase();
+  const kena = penting.filter((t) => teks.includes(t)).length;
+  return kena / penting.length;
+}
+
 export function skorJudul(kueri: string, kandidat: Kandidat): number {
   const penting = tokenPenting(kueri);
   if (penting.length === 0) return 0;
