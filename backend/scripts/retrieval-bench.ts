@@ -7,8 +7,45 @@
  *   bun scripts/retrieval-bench.ts --grid          # sapu beberapa bobot rerank
  *   bun scripts/retrieval-bench.ts --grid --batas 40
  */
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { pool } from "../src/db";
-import { search } from "../src/services/rag";
+
+/**
+ * Cache embedding di disk. Sapuan bobot memanggil ulang kueri yang sama;
+ * tanpa cache, satu sapuan = ratusan panggilan API dan berjam-jam.
+ * Cache hanya menyimpan respons /embeddings — bukan data pengguna.
+ */
+const CACHE_PATH = process.env.BENCH_CACHE ?? "/tmp/mih-embed-cache.json";
+const cacheEmbed: Record<string, string> = existsSync(CACHE_PATH)
+  ? (JSON.parse(readFileSync(CACHE_PATH, "utf8")) as Record<string, string>)
+  : {};
+let cacheKotor = false;
+
+const fetchAsli = globalThis.fetch;
+globalThis.fetch = (async (input: any, init?: any) => {
+  const url = String(input);
+  const body = typeof init?.body === "string" ? init.body : "";
+  if (url.includes("/embeddings") && body) {
+    if (cacheEmbed[body]) {
+      return new Response(cacheEmbed[body], { status: 200, headers: { "content-type": "application/json" } });
+    }
+    const resp = await fetchAsli(input, init);
+    const teks = await resp.clone().text();
+    if (resp.ok) {
+      cacheEmbed[body] = teks;
+      cacheKotor = true;
+    }
+    return resp;
+  }
+  return fetchAsli(input, init);
+}) as typeof fetch;
+
+function simpanCache() {
+  if (cacheKotor) writeFileSync(CACHE_PATH, JSON.stringify(cacheEmbed));
+}
+
+// Diimpor SETELAH fetch dibungkus agar panggilan embedding memakai cache.
+const { search } = await import("../src/services/rag");
 
 interface Kasus {
   id: number;
@@ -94,6 +131,7 @@ async function main() {
     );
   }
 
+  simpanCache();
   await pool.end();
 }
 
