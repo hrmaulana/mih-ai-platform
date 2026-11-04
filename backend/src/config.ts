@@ -35,7 +35,9 @@ export const config = {
   ragRewriteMin: Number(process.env.RAG_REWRITE_MIN ?? 0.65),
   ragEkspansi: (process.env.RAG_EKSPANSI ?? "false") === "true",
   // Kandidat yang diambil dari tiap sumber sebelum penggabungan.
-  ragCandidateK: Number(process.env.RAG_CANDIDATE_K ?? 30),
+  ragCandidateK: Number(process.env.RAG_CANDIDATE_K ?? 45),
+  // Ekspansi multi-kueri: kueri asli + varian kata kunci (naikkan recall).
+  ragVarian: (process.env.RAG_VARIAN ?? "true") !== "false",
   // Penjaga deterministik: skor kemiripan terbaik di bawah ambang ini -> paksa menolak.
   ragAbstainMin: Number(process.env.RAG_ABSTAIN_MIN ?? 0.58),
   // Kalibrasi abstain: bila bukti leksikal kuat, jangan menolak walau skor vektor rendah.

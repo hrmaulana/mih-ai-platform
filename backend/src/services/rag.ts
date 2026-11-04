@@ -219,7 +219,24 @@ async function searchLocal(question: string): Promise<SearchResult> {
       }
     }
 
-    const sumberKandidat = [vektorAsli, vektorTambahan, leksikal];
+    // Tahap 2b — ekspansi multi-kueri: pertanyaan percakapan ter-embed berbeda
+    // dari gaya bahasa dokumen. Varian kata kunci menaikkan peluang chunk sumber
+    // ikut terambil sebelum rerank.
+    let vektorVarian: any[] = [];
+    if (config.ragVarian) {
+      const varian = varianKueri(question)
+        .map((v) => v.trim())
+        .filter((v) => v && v !== question)
+        .slice(0, 3);
+      if (varian.length > 0) {
+        const vektorV = await embedTexts(varian);
+        for (let i = 0; i < varian.length; i++) {
+          vektorVarian = vektorVarian.concat(await cariVektor(vektorV[i], kandidat));
+        }
+      }
+    }
+
+    const sumberKandidat = [vektorAsli, vektorTambahan, leksikal, vektorVarian];
     const gabung = new Map<number, any>();
     for (const list of sumberKandidat) {
       for (const r of list) if (!gabung.has(Number(r.id))) gabung.set(Number(r.id), r);
