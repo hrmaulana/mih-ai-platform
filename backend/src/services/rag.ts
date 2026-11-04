@@ -36,6 +36,31 @@ export interface SearchResult {
   cakupan?: number;
 }
 
+/**
+ * Angka dalam jawaban yang tidak ada di konteks = klaim tak berdasar.
+ *
+ * Skor vektor/leksikal tidak bisa membedakan "kata-katanya ada di korpus" dari
+ * "faktanya ada di korpus" (kasus T11: Trans Sumatra disebut, panjangnya tidak).
+ * Angka adalah sinyal paling keras: kalau SEMUA angka di jawaban tidak muncul di
+ * konteks, jawaban itu disusun dari luar dokumen.
+ *
+ * Mengembalikan daftar angka yang hilang HANYA bila seluruh angka jawaban hilang
+ * (konservatif: satu angka yang cocok sudah cukup untuk meloloskan).
+ */
+export function angkaTakDidukung(jawaban: string, konteks: string): string[] {
+  const ambil = (t: string) =>
+    (t.match(/\d[\d.,]*/g) ?? [])
+      .map((x) => x.replace(/[.,]+$/, ""))
+      .filter((x) => x.length >= 2);
+
+  const angkaJawaban = ambil(jawaban);
+  if (angkaJawaban.length === 0) return [];
+
+  const isi = konteks.replace(/\s+/g, " ");
+  const hilang = angkaJawaban.filter((a) => !isi.includes(a));
+  return hilang.length === angkaJawaban.length ? hilang : [];
+}
+
 export function extractCitedIndices(answer: string): Set<number> {
   const set = new Set<number>();
   const re = /\[(\d+)\]/g;
@@ -459,6 +484,22 @@ export async function ask(
     if (sitasiUlang.length > 0) {
       teks = ulang.text;
       sitasi = sitasiUlang;
+    }
+  }
+
+  // Penjaga angka: jawaban yang seluruh angkanya tak ada di konteks = mengarang.
+  // Perbandingan dikecualikan karena selisih sah dihitung dari dua angka konteks.
+  if (!isComparison) {
+    const hilang = angkaTakDidukung(teks, context);
+    if (hilang.length > 0) {
+      return {
+        answer: JAWABAN_TIDAK_DITEMUKAN,
+        citations: [],
+        model: jawab.model,
+        tokenIn: jawab.tokenIn,
+        tokenOut: jawab.tokenOut,
+        menolak: true,
+      };
     }
   }
 
