@@ -46,6 +46,8 @@ export const config = {
   ragAbstainCakupan: Number(process.env.RAG_ABSTAIN_CAKUPAN ?? 0.3),
   // Reranker ringan (sim + leksikal + entitas + judul + MMR).
   ragRerank: (process.env.RAG_RERANK ?? "true") !== "false",
+  // Parent-document retrieval: perluas konteks ke seluruh subbab chunk teratas.
+  ragParentSeksi: (process.env.RAG_PARENT_SEKSI ?? "true") !== "false",
   // Varian system prompt: 1 = bawaan, 2 = tambahan anti-penolakan-keliru (uji A/B).
   promptVariant: Number(process.env.PROMPT_VARIANT ?? 3),
   llmProvider: process.env.LLM_PROVIDER ?? "openai", // "openai" | "mock"

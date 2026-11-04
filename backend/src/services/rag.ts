@@ -146,6 +146,53 @@ export function harusMenolak(hasil: SearchResult): boolean {
 }
 
 /**
+ * Perluas konteks ke seluruh subbab (parent-document retrieval).
+ *
+ * Chunk kecil bagus untuk *menemukan* fakta, tapi jawaban sering butuh konteks
+ * satu subbab penuh. Untuk tiap chunk teratas yang punya judul bagian, ambil
+ * seluruh chunk bersaudara (dokumen + judul sama) sampai batas karakter.
+ */
+async function perluasSeksi(rows: any[], maksChar = 4800): Promise<any[]> {
+  const berjudul = rows.filter((r) => r.section_title).slice(0, 3);
+  if (berjudul.length === 0) return rows;
+
+  const sudah = rows.map((r) => Number(r.id));
+  const sisipan = new Map<number, any[]>();
+  let sisa = maksChar;
+
+  for (const jangkar of berjudul) {
+    if (sisa <= 0) break;
+    const { rows: saudara } = await pool.query(
+      `SELECT c.id, c.content, c.page_or_slide, c.section_title,
+              d.id AS document_id, d.filename, d.file_type
+         FROM chunks c JOIN documents d ON d.id = c.document_id
+        WHERE c.document_id = $1 AND c.section_title = $2
+          AND c.is_outdated = FALSE AND c.id <> ALL($3::bigint[])
+        ORDER BY c.chunk_index`,
+      [jangkar.document_id, jangkar.section_title, sudah],
+    );
+    const tambahan: any[] = [];
+    for (const s of saudara) {
+      const panjang = String(s.content).length;
+      if (panjang > sisa) break;
+      sisa -= panjang;
+      sudah.push(Number(s.id));
+      tambahan.push(s);
+    }
+    if (tambahan.length) sisipan.set(Number(jangkar.id), tambahan);
+  }
+
+  if (sisipan.size === 0) return rows;
+  const hasil: any[] = [];
+  for (const r of rows) {
+    hasil.push(r);
+    const ekstra = sisipan.get(Number(r.id));
+    if (ekstra) hasil.push(...ekstra);
+  }
+  return hasil;
+}
+
+/**
  * Ambil chunk tetangga (index ±1) dari beberapa hasil teratas dokumen yang sama.
  * Murni pelengkap konteks — tidak menambah label baru bila sudah ada.
  */
@@ -318,6 +365,8 @@ async function searchLocal(question: string): Promise<SearchResult> {
     // Fakta sering terbelah antar-chunk (mis. tabel & narasinya). Tambahkan
     // tetangga terdekat dari chunk teratas agar jawaban tidak setengah.
     rows = await tambahTetangga(rows, 4);
+    // Konteks subbab penuh: chunk kecil untuk menemukan, subbab utuh untuk menjawab.
+    if (config.ragParentSeksi) rows = await perluasSeksi(rows);
   }
   const labeled = rows.map((r, i) => ({ ...r, label: i + 1 }));
   const isComparison = isComparisonQuery(question);
