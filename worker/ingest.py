@@ -73,7 +73,7 @@ def _extract_chunks(path: Path, doc):
 
 
 def _embed_chunks(chunks) -> list[list[float]]:
-    vectors = embed_texts([c.text for c in chunks])
+    vectors = embed_texts([getattr(c, "embed_text", None) or c.text for c in chunks])
     if len(vectors) != len(chunks):
         raise ValueError(f"jumlah embedding {len(vectors)} != jumlah chunk {len(chunks)}")
     return vectors

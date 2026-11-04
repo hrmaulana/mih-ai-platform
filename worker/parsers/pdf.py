@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from .base import Segment
+from .headings import split_page_sections
 
 
 def parse_pdf(path: Path, ocr: bool = False) -> list[Segment]:
@@ -8,11 +9,22 @@ def parse_pdf(path: Path, ocr: bool = False) -> list[Segment]:
 
     reader = PdfReader(str(path))
     segments: list[Segment] = []
+    judul_terakhir: str | None = None
     for i, page in enumerate(reader.pages, start=1):
         text = (page.extract_text() or "").strip()
         if not text and ocr:
             text = _ocr_page(str(path), i)
-        segments.append(Segment(text=text, page_or_slide=i, needs_ocr=not text))
+        if not text:
+            segments.append(Segment(text="", page_or_slide=i, needs_ocr=True))
+            continue
+        # PDF tidak menyimpan struktur; judul dideteksi dari pola baris.
+        # Halaman lanjutan mewarisi judul terakhir agar chunk tetap berkonteks.
+        for judul, isi in split_page_sections(text):
+            if judul is None:
+                judul = judul_terakhir
+            else:
+                judul_terakhir = judul
+            segments.append(Segment(text=isi, page_or_slide=i, section_title=judul))
     return segments
 
 

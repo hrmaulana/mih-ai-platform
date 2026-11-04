@@ -15,6 +15,9 @@ class Chunk:
     page_or_slide: int | None
     section_title: str | None
     chunk_index: int
+    # Teks yang di-embed. Bila ada judul bagian, judul disertakan agar vektor
+    # membawa konteks subbab — teks yang disimpan/dikutip tetap bersih.
+    embed_text: str | None = None
 
 
 def token_count(text: str) -> int:
@@ -53,7 +56,7 @@ def _satuan(segments: list[Segment]) -> list[tuple[str, int | None, str | None]]
 
 def chunk_segments(segments: list[Segment], *, min_tokens: int = 300,
                    max_tokens: int = 800, overlap_ratio: float = 0.15,
-                   lintas_halaman: bool = True) -> list[Chunk]:
+                   lintas_halaman: bool = True, target_tokens: int = 450) -> list[Chunk]:
     """Pecah dokumen menjadi chunk.
 
     `lintas_halaman=True` (bawaan) menyambung kalimat antar-halaman: buffer tidak
@@ -79,7 +82,9 @@ def chunk_segments(segments: list[Segment], *, min_tokens: int = 300,
         if not buf:
             return
         teks = _join(tail, " ".join(buf))
-        chunks.append(Chunk(text=teks, page_or_slide=page, section_title=section, chunk_index=idx))
+        embed = f"{section}\n{teks}" if section else teks
+        chunks.append(Chunk(text=teks, page_or_slide=page, section_title=section,
+                            chunk_index=idx, embed_text=embed))
         idx += 1
         tail = token_tail(teks, overlap_ratio)
         buf = []
@@ -90,6 +95,11 @@ def chunk_segments(segments: list[Segment], *, min_tokens: int = 300,
         kandidat = _join(tail, " ".join(buf), kalimat)
         if token_count(kandidat) <= max_tokens:
             buf.append(kalimat)
+            # Berhenti di batas kalimat saat sudah mencapai ukuran target —
+            # tanpa ini chunk selalu dipadatkan sampai batas keras dan presisi
+            # pencarian turun (chunk terlalu besar → embedding terdilusi).
+            if token_count(_join(tail, " ".join(buf))) >= target_tokens:
+                flush()
             continue
 
         flush()
@@ -105,7 +115,9 @@ def chunk_segments(segments: list[Segment], *, min_tokens: int = 300,
         else:
             # Kalimat tunggal melebihi batas keras → simpan apa adanya (fallback).
             tail = ""
-            chunks.append(Chunk(text=kalimat, page_or_slide=hal, section_title=judul, chunk_index=idx))
+            embed = f"{judul}\n{kalimat}" if judul else kalimat
+            chunks.append(Chunk(text=kalimat, page_or_slide=hal, section_title=judul,
+                                chunk_index=idx, embed_text=embed))
             idx += 1
 
     flush()
