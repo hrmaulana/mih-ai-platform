@@ -9,8 +9,10 @@ BACKFILL="${1:-1}"   # jumlah hari ke belakang (default 1 = kemarin + hari ini)
 TMP="$(mktemp /tmp/mih-access-XXXXXX.log)"
 trap 'rm -f "$TMP"' EXIT
 
-echo "[harian] ambil access.log dari mih-frontend-1"
-docker exec mih-frontend-1 sh -c 'cat /var/log/nginx/access.log 2>/dev/null || true' > "$TMP" || true
+# access.log adalah symlink ke /dev/stdout di image nginx resmi, jadi log dibaca
+# dari docker logs (JSON per baris). Baris format lama otomatis dilewati parser.
+echo "[harian] ambil log akses dari mih-frontend-1 (docker logs)"
+docker logs --since 48h mih-frontend-1 > "$TMP" 2>&1 || true
 echo "[harian] $(wc -l < "$TMP") baris log"
 
 docker cp "$TMP" mih-backend-1:/tmp/access.log
