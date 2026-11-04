@@ -4,9 +4,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-BACKUP_DIR="${BACKUP_DIR:-/var/backups/mih}"
+BACKUP_DIR="${BACKUP_DIR:-$HOME/mih-backups}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-mkdir -p "$BACKUP_DIR" 2>/dev/null || true
+mkdir -p "$BACKUP_DIR" || { echo "[migrate] tidak bisa membuat $BACKUP_DIR"; exit 1; }
 
 echo "[migrate] backup skema → $BACKUP_DIR/schema-$STAMP.sql"
 docker exec mih-db-1 pg_dump -U mih -d mih --schema-only > "$BACKUP_DIR/schema-$STAMP.sql" || {
