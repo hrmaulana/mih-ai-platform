@@ -1,6 +1,6 @@
 import { pool } from "../db";
 import { config } from "../config";
-import { generateAnswer, streamAnswer, tulisUlangKueri, type ChatTurn } from "./llm";
+import { generateAnswerDenganUsage, streamAnswer, tulisUlangKueri, type ChatTurn } from "./llm";
 import { embedTexts } from "./embeddings";
 import { decideAbstain, lexicalScore, pecahKalimat, perluTulisUlang, rrfFuseBanyak, skorMaxSim, varianKueri } from "./retrieval";
 
@@ -299,15 +299,33 @@ function buildCitations(labeled: SearchRow[], text: string): Citation[] {
     }));
 }
 
+export interface HasilAsk {
+  answer: string;
+  citations: Citation[];
+  model?: string;
+  tokenIn?: number | null;
+  tokenOut?: number | null;
+  menolak?: boolean;
+}
+
 export async function ask(
   question: string,
   history: ChatTurn[] = []
-): Promise<{ answer: string; citations: Citation[] }> {
+): Promise<HasilAsk> {
   const hasil = await search(question, history);
-  if (harusMenolak(hasil)) return { answer: JAWABAN_TIDAK_DITEMUKAN, citations: [] };
+  if (harusMenolak(hasil)) {
+    return { answer: JAWABAN_TIDAK_DITEMUKAN, citations: [], menolak: true };
+  }
   const { labeled, context, isComparison } = hasil;
-  const answer = await generateAnswer(question, context, history, isComparison);
-  return { answer, citations: buildCitations(labeled, answer) };
+  const jawab = await generateAnswerDenganUsage(question, context, history, isComparison);
+  return {
+    answer: jawab.text,
+    citations: buildCitations(labeled, jawab.text),
+    model: jawab.model,
+    tokenIn: jawab.tokenIn,
+    tokenOut: jawab.tokenOut,
+    menolak: jawab.text === JAWABAN_TIDAK_DITEMUKAN,
+  };
 }
 
 export async function* askStream(

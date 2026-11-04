@@ -1,0 +1,10 @@
+[Unit]
+Description=Jalankan agregasi metrik MIH setiap hari 00:10
+
+[Timer]
+OnCalendar=*-*-* 00:10:00
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

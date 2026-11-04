@@ -99,6 +99,12 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  metricsDaily: (dari: string, sampai: string) =>
+    req<any>(`/api/admin/metrics/daily?dari=${dari}&sampai=${sampai}`),
+
+  metricsQuestions: (tanggal: string) =>
+    req<any>(`/api/admin/metrics/questions?tanggal=${tanggal}`),
+
   feedback: (muatan: {
     pertanyaan: string;
     jawaban: string;

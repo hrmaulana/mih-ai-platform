@@ -126,8 +126,9 @@ router.post("/chat", askAuth, async (req, res) => {
         write("delta", { text: part.delta });
       } else {
         await pool.query(
-          `INSERT INTO usage_logs (token_id, user_id, question, answer, cited_chunks, model, latency_ms)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          `INSERT INTO usage_logs
+             (token_id, user_id, question, answer, cited_chunks, model, latency_ms, sumber)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, 'chat')`,
           [
             req.auth!.tokenId,
             req.auth!.userId,

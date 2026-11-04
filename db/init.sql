@@ -111,3 +111,59 @@ CREATE INDEX IF NOT EXISTS messages_conversation_idx ON messages (conversation_i
 
 ALTER TABLE documents ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'upload';
 CREATE INDEX IF NOT EXISTS documents_source_idx ON documents (source);
+
+
+-- ==== 009/010: biaya LLM + metrik harian (disamakan dengan migrasi) ====
+-- Biaya LLM per pertanyaan: token masuk/keluar + harga per model.
+ALTER TABLE usage_logs
+  ADD COLUMN IF NOT EXISTS token_in integer,
+  ADD COLUMN IF NOT EXISTS token_out integer,
+  ADD COLUMN IF NOT EXISTS biaya_usd numeric(12, 6),
+  ADD COLUMN IF NOT EXISTS sumber text NOT NULL DEFAULT 'playground';
+
+CREATE TABLE IF NOT EXISTS model_prices (
+  model text PRIMARY KEY,
+  usd_in_per_1m numeric(12, 6),
+  usd_out_per_1m numeric(12, 6),
+  catatan text,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Harga indikatif (USD per 1 juta token). NULL = belum diketahui (jangan dianggap 0).
+INSERT INTO model_prices (model, usd_in_per_1m, usd_out_per_1m, catatan) VALUES
+  ('openai/gpt-4o-mini', 0.150000, 0.600000, 'indikatif 2026'),
+  ('openai/gpt-4o', 2.500000, 10.000000, 'indikatif 2026'),
+  ('deepseek/deepseek-v4-flash', 0.070000, 0.280000, 'indikatif 2026'),
+  ('deepseek/deepseek-v4.1-flash-1017', 0.070000, 0.280000, 'indikatif 2026'),
+  ('gpt-6-luna', 1.000000, 3.000000, 'indikatif — verifikasi ulang')
+ON CONFLICT (model) DO NOTHING;
+
+CREATE INDEX IF NOT EXISTS usage_logs_created_idx ON usage_logs (created_at DESC);
+
+-- Agregat harian untuk halaman Log Harian. Bentuk narrow: metrik baru
+-- tidak memerlukan migrasi baru.
+CREATE TABLE IF NOT EXISTS daily_metrics (
+  tanggal date NOT NULL,
+  kategori text NOT NULL,
+  metrik text NOT NULL,
+  dimensi text NOT NULL DEFAULT '',
+  nilai numeric NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (tanggal, kategori, metrik, dimensi)
+);
+
+CREATE INDEX IF NOT EXISTS daily_metrics_kat_idx ON daily_metrics (kategori, tanggal DESC);
+
+-- Trafik dari nginx (JSON log). IP tidak disimpan mentah — hanya hitungan unik.
+CREATE TABLE IF NOT EXISTS access_daily (
+  tanggal date NOT NULL,
+  jalur text NOT NULL,
+  kelas_status text NOT NULL,
+  is_bot boolean NOT NULL,
+  hits integer NOT NULL DEFAULT 0,
+  ip_unik integer NOT NULL DEFAULT 0,
+  PRIMARY KEY (tanggal, jalur, kelas_status, is_bot)
+);
+
+CREATE INDEX IF NOT EXISTS access_daily_tgl_idx ON access_daily (tanggal DESC);
+

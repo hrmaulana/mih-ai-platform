@@ -56,14 +56,30 @@ export function selectSystemPrompt(isComparison: boolean, variant: number = conf
   return variant >= 2 ? `${dasar}\n${OVERREFUSAL_ADDENDUM}` : dasar;
 }
 
-export async function generateAnswer(
+export interface JawabanDenganUsage {
+  text: string;
+  model: string;
+  tokenIn: number | null;
+  tokenOut: number | null;
+}
+
+/**
+ * Seperti generateAnswer, tetapi mengembalikan model + jumlah token
+ * supaya pemanggil bisa mencatat biaya (usage_logs.token_in/token_out).
+ */
+export async function generateAnswerDenganUsage(
   question: string,
   context: string,
   history: ChatTurn[] = [],
   isComparison: boolean = false
-): Promise<string> {
+): Promise<JawabanDenganUsage> {
   if (config.llmProvider === "mock") {
-    return `Jawaban (mock) berdasarkan [1]: ${question}`;
+    return {
+      text: `Jawaban (mock) berdasarkan [1]: ${question}`,
+      model: "mock",
+      tokenIn: null,
+      tokenOut: null,
+    };
   }
   const client = new OpenAI({ apiKey: config.openaiApiKey });
   const model =
@@ -76,7 +92,22 @@ export async function generateAnswer(
       { role: "user", content: `Pertanyaan: ${question}\n\nKonteks:\n${context}` },
     ],
   });
-  return resp.choices[0]?.message?.content ?? "";
+  return {
+    text: resp.choices[0]?.message?.content ?? "",
+    model,
+    tokenIn: resp.usage?.prompt_tokens ?? null,
+    tokenOut: resp.usage?.completion_tokens ?? null,
+  };
+}
+
+export async function generateAnswer(
+  question: string,
+  context: string,
+  history: ChatTurn[] = [],
+  isComparison: boolean = false
+): Promise<string> {
+  const hasil = await generateAnswerDenganUsage(question, context, history, isComparison);
+  return hasil.text;
 }
 
 export async function* streamAnswer(

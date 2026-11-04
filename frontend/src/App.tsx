@@ -14,6 +14,7 @@ import Playground from "./pages/Playground";
 import Documents from "./pages/Documents";
 import DocumentGraph from "./pages/DocumentGraph";
 import Admin from "./pages/Admin";
+import Metrics from "./pages/Metrics";
 
 import PortalLayout from "./pages/portal/PortalLayout";
 import PortalHome from "./pages/portal/PortalHome";
@@ -118,6 +119,11 @@ function SiteHeader({ user, onLogout }: { user: User; onLogout: () => void }) {
               Admin
             </NavLink>
           )}
+            {user.is_admin && (
+              <NavLink to="/admin/metrics" className={navClass} onClick={closeMobile}>
+                Log Harian
+              </NavLink>
+            )}
           <div className="group relative">
             <button className="text-[15px] font-bold text-slate-700 transition-colors hover:text-blue-900">
               Dashboard ▾
@@ -340,6 +346,10 @@ export default function App() {
           path="/admin"
           element={user.is_admin ? <Admin /> : <Navigate to="/playground" />}
         />
+          <Route
+            path="/admin/metrics"
+            element={user.is_admin ? <Metrics /> : <Navigate to="/playground" />}
+          />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
