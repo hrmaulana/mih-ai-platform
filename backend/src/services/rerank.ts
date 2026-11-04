@@ -30,12 +30,19 @@ export interface BobotRerank {
   perDokumen: number;
 }
 
+/**
+ * Bobot hasil sapuan `retrieval-bench.ts --grid` atas 89 kasus korpus:
+ *   λ 0,30 → hit@8 40,4% | λ 0,50 → 39,3% | λ 0,10 → 46,1% | λ 0   → 44,9%
+ * MMR terlalu kuat justru membuang chunk kedua dari dokumen yang sama — padahal
+ * jawaban sering tersebar di beberapa chunk dokumen itu. Dipilih λ 0,10
+ * (hit@8 terbaik; MRR 0,347 vs 0,352 pada λ 0).
+ */
 export const BOBOT_BAWAAN: BobotRerank = {
   sim: 0.42,
   leksikal: 0.26,
   entitas: 0.2,
   judul: 0.12,
-  lambda: 0.3,
+  lambda: 0.1,
   perDokumen: 3,
 };
 
