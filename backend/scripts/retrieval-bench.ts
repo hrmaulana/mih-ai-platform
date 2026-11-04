@@ -97,9 +97,16 @@ async function main() {
   const pakaiGrid = process.argv.includes("--grid");
   const batasIdx = process.argv.indexOf("--batas");
   const batas = batasIdx >= 0 ? Number(process.argv[batasIdx + 1]) : 0;
+  const dokIdx = process.argv.indexOf("--dokumen");
+  const dokIds = dokIdx >= 0
+    ? String(process.argv[dokIdx + 1] ?? "").split(",").map((x) => Number(x.trim())).filter((n) => Number.isFinite(n) && n > 0)
+    : [];
 
   const { rows } = await pool.query<Kasus>(
-    `SELECT id, pertanyaan, dokumen_id FROM retrieval_cases WHERE aktif ORDER BY id ${batas > 0 ? "LIMIT " + batas : ""}`,
+    `SELECT id, pertanyaan, dokumen_id FROM retrieval_cases
+      WHERE aktif ${dokIds.length ? "AND dokumen_id = ANY($1::bigint[])" : ""}
+      ORDER BY id ${batas > 0 ? "LIMIT " + batas : ""}`,
+    dokIds.length ? [dokIds] : [],
   );
   if (rows.length === 0) {
     console.error("[bench] belum ada kasus — jalankan generate-eval-set.ts dulu");

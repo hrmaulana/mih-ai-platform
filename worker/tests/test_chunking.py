@@ -65,3 +65,30 @@ def test_hard_cap_not_exceeded_by_tail_plus_sentence():
     for c in chunks:
         assert token_count(c.text) <= 800, \
             f"chunk {c.chunk_index} melebihi 800 token: {token_count(c.text)}"
+
+
+def test_kalimat_terpotong_batas_halaman_disambung():
+    """Kalimat yang terbelah dua halaman harus utuh dalam satu chunk."""
+    seg1 = Segment(text="Pendahuluan halaman satu. Kalimat ini berlanjut",
+                   page_or_slide=1, section_title=None)
+    seg2 = Segment(text="ke halaman dua tanpa terputus. Kalimat penutup.",
+                   page_or_slide=2, section_title=None)
+
+    sambung = chunk_segments([seg1, seg2])
+    gabungan = " ".join(c.text for c in sambung)
+    assert "berlanjut ke halaman dua" in gabungan
+
+    # Perilaku lama: tidak ada SATU chunk pun yang memuat frasa lintas halaman.
+    per_halaman = chunk_segments([seg1, seg2], lintas_halaman=False)
+    assert not any("berlanjut ke halaman dua" in c.text for c in per_halaman)
+
+
+def test_metadata_diambil_dari_kalimat_pertama():
+    # Harus melewati batas keras 800 token agar halaman 2 benar-benar jadi chunk baru.
+    seg1 = Segment(text="Isi halaman satu yang cukup panjang untuk mengisi chunk pertama dokumen ini. " * 90,
+                   page_or_slide=1, section_title="Bab 1")
+    seg2 = Segment(text="Isi halaman dua yang juga panjang agar memaksa chunk baru. " * 120, page_or_slide=2, section_title="Bab 2")
+    chunks = chunk_segments([seg1, seg2])
+    assert chunks[0].page_or_slide == 1
+    assert chunks[0].section_title == "Bab 1"
+    assert any(c.page_or_slide == 2 for c in chunks)
