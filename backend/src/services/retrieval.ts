@@ -63,10 +63,10 @@ export function decideAbstainKalibrasi(
 ): boolean {
   if (bestScore === null) return false;
   if (bestScore >= ambang) return false;
-  // Jalur leksikal hanya untuk kasus yang benar-benar dekat ambang. Tanpa syarat
-  // jarak ini, pertanyaan di luar korpus (mis. T4, skor 0,569) ikut dijawab.
-  const dekatAmbang = bestScore >= ambang - 0.06;
-  return !(dekatAmbang && lexScore >= ambangLex);
+  // Jalur leksikal: bukti kata yang kuat dianggap cukup untuk menjawab.
+  // (Syarat jarak 0,06 pernah dicoba di run 6 — justru menaikkan penolakan-keliru
+  //  ke 16,7% tanpa menahan T4, jadi dikembalikan ke bentuk sederhana.)
+  return lexScore < ambangLex;
 }
 
 /**

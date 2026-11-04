@@ -65,13 +65,12 @@ describe("pemilihan hasil (MMR + batas per dokumen)", () => {
 });
 
 describe("kalibrasi abstain", () => {
-  test("vektor sedikit di bawah ambang + leksikal kuat → jangan menolak", () => {
-    expect(decideAbstainKalibrasi(0.55, 0.4, 0.58, 0.12)).toBe(false);
+  test("vektor di bawah ambang tapi leksikal kuat → jangan menolak", () => {
+    expect(decideAbstainKalibrasi(0.5, 0.4, 0.58, 0.12)).toBe(false);
   });
 
-  test("vektor jauh di bawah ambang → tetap menolak walau leksikal kuat", () => {
-    // Kasus T4 (Perjanjian Paris): 0,569 dulu lolos; sekarang jarak ke ambang wajib ≤0,06.
-    expect(decideAbstainKalibrasi(0.5, 0.4, 0.58, 0.12)).toBe(true);
+  test("leksikal lemah tetap menolak", () => {
+    expect(decideAbstainKalibrasi(0.5, 0.02, 0.58, 0.12)).toBe(true);
   });
 
   test("vektor rendah dan leksikal lemah → menolak", () => {

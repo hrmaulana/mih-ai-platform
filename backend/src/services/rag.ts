@@ -134,11 +134,9 @@ export const JAWABAN_TIDAK_DITEMUKAN =
 export function harusMenolak(hasil: SearchResult): boolean {
   if (config.ragAbstainMin <= 0) return false;
   if (hasil.bestScore == null) return false;
-  // Pertanyaan di luar korpus (mis. Perjanjian Paris 2050): token khasnya tidak
-  // muncul di chunk mana pun → tolak walau leksikal "terlihat" kuat.
-  if (hasil.bestScore < config.ragAbstainMin && (hasil.cakupan ?? 1) < config.ragAbstainCakupan) {
-    return true;
-  }
+  // Catatan: guard berbasis cakupan token dicoba (run 6) dan DICABUT — ia menolak
+  // J2 yang sebenarnya ada di korpus, tanpa menahan T4. Cakupan tetap dihitung
+  // sebagai sinyal diagnostik, bukan penentu keputusan.
   return decideAbstainKalibrasi(
     hasil.bestScore,
     hasil.lexScore ?? 0,
