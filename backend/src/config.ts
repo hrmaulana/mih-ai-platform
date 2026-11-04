@@ -47,7 +47,9 @@ export const config = {
   // Reranker ringan (sim + leksikal + entitas + judul + MMR).
   ragRerank: (process.env.RAG_RERANK ?? "true") !== "false",
   // Parent-document retrieval: perluas konteks ke seluruh subbab chunk teratas.
-  ragParentSeksi: (process.env.RAG_PARENT_SEKSI ?? "true") !== "false",
+  // A/B 4 Nov (run 9 vs 10): hasil identik (33,3% benar+sitasi, hit@8 75%) →
+  // default dimatikan agar konteks lebih ringkas; nyalakan lewat env bila perlu.
+  ragParentSeksi: (process.env.RAG_PARENT_SEKSI ?? "false") === "true",
   // Varian system prompt: 1 = bawaan, 2 = tambahan anti-penolakan-keliru (uji A/B).
   promptVariant: Number(process.env.PROMPT_VARIANT ?? 3),
   llmProvider: process.env.LLM_PROVIDER ?? "openai", // "openai" | "mock"
