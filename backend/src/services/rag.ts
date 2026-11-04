@@ -3,7 +3,7 @@ import { config } from "../config";
 import { generateAnswerDenganUsage, streamAnswer, tulisUlangKueri, type ChatTurn } from "./llm";
 import { embedTexts } from "./embeddings";
 import { decideAbstainKalibrasi, lexicalScore, pecahKalimat, perluTulisUlang, rrfFuseBanyak, skorMaxSim, varianKueri, varianSinonim } from "./retrieval";
-import { cakupanToken, pilihRerank } from "./rerank";
+import { bobotDariEnv, cakupanToken, pilihRerank } from "./rerank";
 
 export interface Citation {
   label: number;
@@ -310,6 +310,7 @@ async function searchLocal(question: string): Promise<SearchResult> {
         })),
         question,
         config.vectorK,
+        bobotDariEnv(),
       );
     } else {
       rows = pra.slice(0, config.vectorK).map((x) => x.r);

@@ -39,6 +39,22 @@ export const BOBOT_BAWAAN: BobotRerank = {
   perDokumen: 3,
 };
 
+/** Bobot aktif — dibaca dari env agar harness bisa menyapu konfigurasi. */
+export function bobotDariEnv(): BobotRerank {
+  const n = (kunci: string, bawaan: number) => {
+    const v = Number(process.env[kunci]);
+    return Number.isFinite(v) && v >= 0 ? v : bawaan;
+  };
+  return {
+    sim: n("RERANK_W_SIM", BOBOT_BAWAAN.sim),
+    leksikal: n("RERANK_W_LEKSIKAL", BOBOT_BAWAAN.leksikal),
+    entitas: n("RERANK_W_ENTITAS", BOBOT_BAWAAN.entitas),
+    judul: n("RERANK_W_JUDUL", BOBOT_BAWAAN.judul),
+    lambda: n("RERANK_W_LAMBDA", BOBOT_BAWAAN.lambda),
+    perDokumen: n("RERANK_PER_DOKUMEN", BOBOT_BAWAAN.perDokumen),
+  };
+}
+
 const KATA_UMUM = new Set([
   "yang", "untuk", "dari", "dengan", "dalam", "pada", "adalah", "berapa", "bagaimana",
   "apa", "apakah", "dan", "atau", "ini", "itu", "akan", "tidak", "juga", "serta",
