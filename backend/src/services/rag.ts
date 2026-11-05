@@ -272,7 +272,7 @@ async function searchLocal(question: string): Promise<SearchResult> {
 
     // Tahap 1 — pertanyaan asli. Skor ini juga yang dipakai penjaga abstain,
     // sehingga tulis-ulang tidak bisa menyamarkan pertanyaan di luar korpus.
-    const [qvAsli] = await embedTexts([question]);
+    const [qvAsli] = await embedTexts([question], besar);
     const vektorAsli = await cariVektor(qvAsli, kandidat);
     bestScore = vektorAsli.length ? Number(vektorAsli[0].sim) : null;
 
@@ -297,7 +297,7 @@ async function searchLocal(question: string): Promise<SearchResult> {
     if (config.ragRewrite && perluTulisUlang(bestScore, leksikal.length, config.ragRewriteMin)) {
       const kueriBaru = await tulisUlangKueri(question);
       if (kueriBaru && kueriBaru !== question) {
-        const [qvBaru] = await embedTexts([kueriBaru]);
+        const [qvBaru] = await embedTexts([kueriBaru], besar);
         vektorTambahan = await cariVektor(qvBaru, kandidat);
       }
     }
@@ -312,7 +312,7 @@ async function searchLocal(question: string): Promise<SearchResult> {
         .filter((v) => v && v !== question)
         .slice(0, 4);
       if (varian.length > 0) {
-        const vektorV = await embedTexts(varian);
+        const vektorV = await embedTexts(varian, besar);
         for (let i = 0; i < varian.length; i++) {
           vektorVarian = vektorVarian.concat(await cariVektor(vektorV[i], kandidat));
         }
@@ -345,7 +345,7 @@ async function searchLocal(question: string): Promise<SearchResult> {
         })
       );
       if (datar.length > 0) {
-        const vektorKalimat = await embedTexts(datar);
+        const vektorKalimat = await embedTexts(datar, besar);
         const perKandidat: number[][][] = kalimatPer.map(() => []);
         vektorKalimat.forEach((v: any, j: number) => perKandidat[peta[j]].push(v as number[]));
         for (let i = 0; i < M; i++) pra[i].skor += 0.6 * skorMaxSim(qvAsli as number[], perKandidat[i]);
