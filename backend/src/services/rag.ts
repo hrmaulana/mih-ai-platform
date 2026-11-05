@@ -322,7 +322,7 @@ async function searchLocal(question: string): Promise<SearchResult> {
     }
     // Peringkat ulang tahap 1: RRF + cakupan token leksikal.
     const skorRrf = rrfFuseBanyak(sumberKandidat);
-    const pra = [...gabung.values()].map((r) => ({
+    let pra = [...gabung.values()].map((r) => ({
       r,
       skor: (skorRrf.get(Number(r.id)) ?? 0) + 0.5 * lexicalScore(question, String(r.content)),
     }));
@@ -348,6 +348,11 @@ async function searchLocal(question: string): Promise<SearchResult> {
         pra.sort((a, b) => b.skor - a.skor);
       }
     }
+    // Tahap 1b: peringkat dokumen → hanya chunk dari dokumen teratas yang dilanjutkan.
+    if (config.ragDocLevel && pra.length > 0) {
+      pra = saringDokumenTeratas(pra, config.ragDokTeratas);
+    }
+
     if (config.ragRerank) {
       rows = pilihRerank(
         pra.map((x) => ({
@@ -400,6 +405,49 @@ export async function searchViaWebhook(question: string): Promise<SearchResult> 
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Saring kandidat ke sejumlah dokumen teratas.
+ *
+ * Alasan: chunk yang benar sering berada di peringkat 20–50, tetapi dokumennya
+ * punya beberapa chunk yang cocok. Merangking dokumen dulu (agregat skor chunk)
+ * lalu mengambil chunk dari dokumen teratas jauh lebih tahan derau daripada
+ * memotong langsung peringkat chunk. Kasus J2: chunk "BI rate 4,7" tidak pernah
+ * masuk 8 teratas chunk, padahal dokumennya jelas relevan.
+ */
+export function saringDokumenTeratas<T extends { r: { document_id: number }; skor: number }>(
+  pra: T[],
+  jumlahDok: number,
+): T[] {
+  const per = new Map<number, T[]>();
+  for (const x of pra) {
+    const id = Number(x.r.document_id);
+    const arr = per.get(id) ?? [];
+    arr.push(x);
+    per.set(id, arr);
+  }
+  const skorDok = new Map<number, number>();
+  for (const [id, arr] of per) {
+    const s = arr.map((a) => a.skor).sort((a, b) => b - a);
+    const top = s.slice(0, 3);
+    const maks = top[0] ?? 0;
+    // Akumulasi bukti: chunk kedua/ketiga ikut menambah skor dokumen, tetapi
+    // hanya bila kualitasnya dekat dengan puncaknya (>= 80% maks). Tanpa syarat
+    // ini, dokumen dengan banyak chunk lemah akan mengalahkan dokumen tepat.
+    const sisa = top
+      .slice(1)
+      .filter((v) => v >= 0.8 * maks)
+      .reduce((a, b) => a + b, 0);
+    const bonus = Math.min(0.05, 0.01 * (arr.length - 1));
+    skorDok.set(id, maks + 0.35 * sisa + bonus);
+  }
+  const teratas = [...skorDok.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, jumlahDok)
+    .map(([id]) => id);
+  const izin = new Set(teratas);
+  return pra.filter((x) => izin.has(Number(x.r.document_id)));
 }
 
 export async function search(question: string, history: ChatTurn[] = []): Promise<SearchResult> {

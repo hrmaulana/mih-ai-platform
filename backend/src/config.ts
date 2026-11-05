@@ -35,7 +35,12 @@ export const config = {
   ragRewriteMin: Number(process.env.RAG_REWRITE_MIN ?? 0.65),
   ragEkspansi: (process.env.RAG_EKSPANSI ?? "false") === "true",
   // Kandidat yang diambil dari tiap sumber sebelum penggabungan.
-  ragCandidateK: Number(process.env.RAG_CANDIDATE_K ?? 45),
+  // Kandidat diperbesar: peringkat dokumen butuh material lebih banyak daripada
+  // pemotongan langsung per chunk.
+  ragCandidateK: Number(process.env.RAG_CANDIDATE_K ?? 90),
+  // Dua tahap: rangking dokumen dulu, baru pilih chunk dari dokumen teratas.
+  ragDocLevel: (process.env.RAG_DOC_LEVEL ?? "true") === "true",
+  ragDokTeratas: Number(process.env.RAG_DOK_TERATAS ?? 6),
   // Ekspansi multi-kueri: kueri asli + varian kata kunci (naikkan recall).
   ragVarian: (process.env.RAG_VARIAN ?? "true") !== "false",
   // Penjaga deterministik: skor kemiripan terbaik di bawah ambang ini -> paksa menolak.
