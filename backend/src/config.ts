@@ -35,11 +35,14 @@ export const config = {
   ragRewriteMin: Number(process.env.RAG_REWRITE_MIN ?? 0.65),
   ragEkspansi: (process.env.RAG_EKSPANSI ?? "false") === "true",
   // Kandidat yang diambil dari tiap sumber sebelum penggabungan.
-  // Kandidat diperbesar: peringkat dokumen butuh material lebih banyak daripada
-  // pemotongan langsung per chunk.
-  ragCandidateK: Number(process.env.RAG_CANDIDATE_K ?? 90),
+  // Kandidat yang diambil dari tiap sumber sebelum penggabungan.
+  // Dikembalikan ke 45 saat doc-level dimatikan (angka baseline 42,3% diukur di 45).
+  ragCandidateK: Number(process.env.RAG_CANDIDATE_K ?? 45),
   // Dua tahap: rangking dokumen dulu, baru pilih chunk dari dokumen teratas.
-  ragDocLevel: (process.env.RAG_DOC_LEVEL ?? "true") === "true",
+  // Default MATI: diukur 4 Nov pada bench 194 kasus, hit@8 42,3% → 40,2%
+  // (MRR 0,293 → 0,289). Membaik pada kasus J2 (menolak → menjawab) tetapi
+  // menurunkan recall keseluruhan. Kode dipertahankan sebagai opsi eksperimen.
+  ragDocLevel: (process.env.RAG_DOC_LEVEL ?? "false") === "true",
   ragDokTeratas: Number(process.env.RAG_DOK_TERATAS ?? 6),
   // Ekspansi multi-kueri: kueri asli + varian kata kunci (naikkan recall).
   ragVarian: (process.env.RAG_VARIAN ?? "true") !== "false",
