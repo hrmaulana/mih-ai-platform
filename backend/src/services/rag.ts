@@ -220,10 +220,14 @@ async function tambahTetangga(rows: any[], maks: number): Promise<any[]> {
 }
 
 async function searchLocal(question: string): Promise<SearchResult> {
-  const [qv] = await embedTexts([question]);
+  // Pilot embedding besar: kolom & model dipilih satu tempat, mudah dibalik.
+  const besar = config.ragEmbedKolom === "large";
+  const kolomEmbed = besar ? "c.embedding_large" : "c.embedding";
+  const tipeEmbed = besar ? "halfvec" : "vector";
+  const [qv] = await embedTexts([question], besar);
   const SELECT = `SELECT c.id, c.content, c.page_or_slide, c.section_title,
                          d.id AS document_id, d.filename, d.file_type,
-                         1 - (c.embedding <=> $1::vector) AS sim
+                         1 - (${kolomEmbed} <=> $1::${tipeEmbed}) AS sim
                     FROM chunks c JOIN documents d ON d.id = c.document_id
                    WHERE c.is_outdated = FALSE AND d.status = 'completed'`;
   let rows: any[];
@@ -232,7 +236,7 @@ async function searchLocal(question: string): Promise<SearchResult> {
     // Perbandingan: cari lebih luas, ragamkan per dokumen, lalu jamin tiap
     // tahun/entitas yang disebut (mis. RKP 2026 & 2027) punya chunk sendiri.
     const { rows: wide } = await pool.query(
-      `${SELECT} ORDER BY c.embedding <=> $1::vector LIMIT $2`,
+      `${SELECT} ORDER BY ${kolomEmbed} <=> $1::${tipeEmbed} LIMIT $2`,
       [JSON.stringify(qv), config.vectorK + 6]
     );
     bestScore = wide.length ? Number(wide[0].sim) : null;
@@ -246,7 +250,7 @@ async function searchLocal(question: string): Promise<SearchResult> {
       );
       for (const d of docs) {
         const { rows: extra } = await pool.query(
-          `${SELECT} AND c.document_id = $2 ORDER BY c.embedding <=> $1::vector LIMIT 2`,
+          `${SELECT} AND c.document_id = $2 ORDER BY ${kolomEmbed} <=> $1::${tipeEmbed} LIMIT 2`,
           [JSON.stringify(qv), d.id]
         );
         for (const r of extra) if (!seen.has(r.id)) {
@@ -260,7 +264,7 @@ async function searchLocal(question: string): Promise<SearchResult> {
     const kandidat = Math.max(config.ragCandidateK, config.vectorK * 3);
     const cariVektor = async (qv: any, jumlah: number) => {
       const { rows } = await pool.query(
-        `${SELECT} ORDER BY c.embedding <=> $1::vector LIMIT $2`,
+        `${SELECT} ORDER BY ${kolomEmbed} <=> $1::${tipeEmbed} LIMIT $2`,
         [JSON.stringify(qv), jumlah]
       );
       return rows;

@@ -59,11 +59,19 @@ def complete_document(conn, doc_id: int, chunk_count: int, warning: str | None =
     )
 
 
-def insert_chunk(conn, doc_id: int, chunk, embedding):
+def insert_chunk(conn, doc_id, chunk, embedding, embedding_large=None):
     conn.execute(
-        "INSERT INTO chunks (document_id, content, embedding, page_or_slide, section_title, chunk_index) "
-        "VALUES (%s, %s, %s::vector, %s, %s, %s)",
-        (doc_id, chunk.text, json.dumps(embedding), chunk.page_or_slide, chunk.section_title, chunk.chunk_index),
+        "INSERT INTO chunks (document_id, content, embedding, embedding_large, page_or_slide, section_title, chunk_index) "
+        "VALUES (%s, %s, %s::vector, %s::halfvec, %s, %s, %s)",
+        (
+            doc_id,
+            chunk.text,
+            json.dumps(embedding),
+            json.dumps(embedding_large) if embedding_large is not None else None,
+            chunk.page_or_slide,
+            chunk.section_title,
+            chunk.chunk_index,
+        ),
     )
 
 

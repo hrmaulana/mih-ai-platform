@@ -79,6 +79,16 @@ def _embed_chunks(chunks) -> list[list[float]]:
     return vectors
 
 
+def _embed_chunks_besar(chunks) -> list[list[float]] | None:
+    """Embedding 3072-dim untuk pilot; hanya bila EMBEDDING_GANDA=1."""
+    if os.environ.get("EMBEDDING_GANDA") != "1":
+        return None
+    vectors = embed_texts([getattr(c, "embed_text", None) or c.text for c in chunks], besar=True)
+    if len(vectors) != len(chunks):
+        raise ValueError(f"jumlah embedding besar {len(vectors)} != jumlah chunk {len(chunks)}")
+    return vectors
+
+
 def process_document(conn, doc) -> int:
     """Proses dalam transaksi/lock claim milik process_pending, tanpa commit."""
     doc_id = doc["id"]
@@ -88,11 +98,12 @@ def process_document(conn, doc) -> int:
         raise FileNotFoundError(f"file tidak ditemukan: {path}")
     chunks, ocr_pages = _extract_chunks(path, doc)
     vectors = _embed_chunks(chunks)
+    vectors_besar = _embed_chunks_besar(chunks)
     # Ganti, bukan tambah: pemanggil memegang lock baris dokumen; penghapusan
     # ikut rollback bersama insert/status bila penulisan mana pun gagal.
     conn.execute("DELETE FROM chunks WHERE document_id=%s", (doc_id,))
-    for c, v in zip(chunks, vectors):
-        insert_chunk(conn, doc_id, c, v)
+    for i, (c, v) in enumerate(zip(chunks, vectors)):
+        insert_chunk(conn, doc_id, c, v, vectors_besar[i] if vectors_besar else None)
     mark_outdated_same_filename(conn, doc["filename"], doc_id)
     warning = f"perlu OCR pada halaman {ocr_pages}" if ocr_pages else None
     complete_document(conn, doc_id, len(chunks), warning)

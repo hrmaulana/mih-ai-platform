@@ -12,6 +12,11 @@ export const config = {
   fallbackBaseUrl: process.env.FALLBACK_BASE_URL ?? "https://api.deepseek.com/v1",
   comparisonModel: process.env.COMPARISON_MODEL ?? "gpt-4o",
   embeddingModel: process.env.EMBEDDING_MODEL ?? "text-embedding-3-small",
+  // Pilot embedding besar (3072 dim) — berdampingan, bukan menimpa.
+  embeddingModelBesar: process.env.EMBEDDING_MODEL_BESAR ?? "text-embedding-3-large",
+  embeddingDimBesar: Number(process.env.EMBEDDING_DIM_BESAR ?? 3072),
+  /** Kolom vektor yang dipakai pencarian: "small" (1536) atau "large" (3072). */
+  ragEmbedKolom: (process.env.RAG_EMBED_KOLOM ?? "small") as "small" | "large",
   embeddingDim: Number(process.env.EMBEDDING_DIM ?? 1536),
   sessionSecret,
   jwtSecret: process.env.JWT_SECRET ?? sessionSecret,
