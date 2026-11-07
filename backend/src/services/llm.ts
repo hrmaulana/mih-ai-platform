@@ -195,8 +195,11 @@ export async function tulisUlangKueri(pertanyaan: string): Promise<string> {
         {
           role: "system",
           content:
-            "Ubah pertanyaan pengguna menjadi kueri pencarian dokumen resmi perencanaan pembangunan Indonesia. " +
-            "Keluarkan HANYA kuerinya (maksimal 25 kata), sertakan istilah teknis dan angka penting, tanpa penjelasan.",
+            "Tulis ulang pertanyaan menjadi kueri pencarian singkat untuk dokumen resmi perencanaan pembangunan Indonesia. " +
+            "Aturan keras: (1) JANGAN menambahkan tahun, angka, nama lembaga, atau istilah yang tidak ada di pertanyaan; " +
+            "(2) pakai sinonim/istilah teknis yang padat (mis. 'BI rate' -> 'suku bunga acuan BI'); " +
+            "(3) maksimal 12 kata, tanpa kata pengantar seperti 'dokumen resmi' atau 'laporan tahunan'; " +
+            "(4) keluarkan HANYA kuerinya.",
         },
         { role: "user", content: pertanyaan },
       ],
