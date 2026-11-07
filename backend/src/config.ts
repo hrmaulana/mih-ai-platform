@@ -15,8 +15,15 @@ export const config = {
   // Pilot embedding besar (3072 dim) — berdampingan, bukan menimpa.
   embeddingModelBesar: process.env.EMBEDDING_MODEL_BESAR ?? "text-embedding-3-large",
   embeddingDimBesar: Number(process.env.EMBEDDING_DIM_BESAR ?? 3072),
-  /** Kolom vektor yang dipakai pencarian: "small" (1536) atau "large" (3072). */
-  ragEmbedKolom: (process.env.RAG_EMBED_KOLOM ?? "small") as "small" | "large",
+  /**
+   * Kolom vektor yang dipakai pencarian:
+   *  "small" (1536, OpenAI) · "large" (3072, OpenAI) · "m3" (1024, bge-m3 lokal)
+   */
+  ragEmbedKolom: (process.env.RAG_EMBED_KOLOM ?? "small") as "small" | "large" | "m3",
+  // bge-m3 lokal (ONNX) untuk korpus Indonesia.
+  ragM3ModelPath: process.env.RAG_M3_MODEL_PATH ?? "/data/models/bge-m3",
+  ragM3Dtype: process.env.RAG_M3_DTYPE ?? "q8",
+  ragM3Batch: Number(process.env.RAG_M3_BATCH ?? 8),
   embeddingDim: Number(process.env.EMBEDDING_DIM ?? 1536),
   sessionSecret,
   jwtSecret: process.env.JWT_SECRET ?? sessionSecret,

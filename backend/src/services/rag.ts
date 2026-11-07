@@ -5,6 +5,7 @@ import { embedTexts } from "./embeddings";
 import { decideAbstainKalibrasi, lexicalScore, pecahKalimat, perluTulisUlang, rrfFuseBanyak, skorMaxSim, varianKueri, varianSinonim } from "./retrieval";
 import { bobotDariEnv, cakupanToken, pilihRerank } from "./rerank";
 import { skorCE, urutkanCE } from "./rerank-ce";
+import { embedM3 } from "./embed-m3";
 
 export interface Citation {
   label: number;
@@ -221,11 +222,14 @@ async function tambahTetangga(rows: any[], maks: number): Promise<any[]> {
 }
 
 async function searchLocal(question: string): Promise<SearchResult> {
-  // Pilot embedding besar: kolom & model dipilih satu tempat, mudah dibalik.
-  const besar = config.ragEmbedKolom === "large";
-  const kolomEmbed = besar ? "c.embedding_large" : "c.embedding";
-  const tipeEmbed = besar ? "halfvec" : "vector";
-  const [qv] = await embedTexts([question], besar);
+  // Kolom & model dipilih satu tempat, mudah dibalik (small / large / m3).
+  const mode = config.ragEmbedKolom;
+  const besar = mode === "large";
+  const pakaiM3 = mode === "m3";
+  const kolomEmbed = pakaiM3 ? "c.embedding_m3" : besar ? "c.embedding_large" : "c.embedding";
+  const tipeEmbed = mode === "small" ? "vector" : "halfvec";
+  const embedKueri = (ts: string[]) => (pakaiM3 ? embedM3(ts) : embedTexts(ts, besar));
+  const [qv] = await embedKueri([question]);
   const SELECT = `SELECT c.id, c.content, c.page_or_slide, c.section_title,
                          d.id AS document_id, d.filename, d.file_type,
                          1 - (${kolomEmbed} <=> $1::${tipeEmbed}) AS sim
@@ -273,7 +277,7 @@ async function searchLocal(question: string): Promise<SearchResult> {
 
     // Tahap 1 — pertanyaan asli. Skor ini juga yang dipakai penjaga abstain,
     // sehingga tulis-ulang tidak bisa menyamarkan pertanyaan di luar korpus.
-    const [qvAsli] = await embedTexts([question], besar);
+    const [qvAsli] = await embedKueri([question]);
     const vektorAsli = await cariVektor(qvAsli, kandidat);
     bestScore = vektorAsli.length ? Number(vektorAsli[0].sim) : null;
 
@@ -298,7 +302,7 @@ async function searchLocal(question: string): Promise<SearchResult> {
     if (config.ragRewrite && perluTulisUlang(bestScore, leksikal.length, config.ragRewriteMin)) {
       const kueriBaru = await tulisUlangKueri(question);
       if (kueriBaru && kueriBaru !== question) {
-        const [qvBaru] = await embedTexts([kueriBaru], besar);
+        const [qvBaru] = await embedKueri([kueriBaru]);
         vektorTambahan = await cariVektor(qvBaru, kandidat);
       }
     }
@@ -313,7 +317,7 @@ async function searchLocal(question: string): Promise<SearchResult> {
         .filter((v) => v && v !== question)
         .slice(0, 4);
       if (varian.length > 0) {
-        const vektorV = await embedTexts(varian, besar);
+        const vektorV = await embedKueri(varian);
         for (let i = 0; i < varian.length; i++) {
           vektorVarian = vektorVarian.concat(await cariVektor(vektorV[i], kandidat));
         }
@@ -346,7 +350,7 @@ async function searchLocal(question: string): Promise<SearchResult> {
         })
       );
       if (datar.length > 0) {
-        const vektorKalimat = await embedTexts(datar, besar);
+        const vektorKalimat = await embedKueri(datar);
         const perKandidat: number[][][] = kalimatPer.map(() => []);
         vektorKalimat.forEach((v: any, j: number) => perKandidat[peta[j]].push(v as number[]));
         for (let i = 0; i < M; i++) pra[i].skor += 0.6 * skorMaxSim(qvAsli as number[], perKandidat[i]);
