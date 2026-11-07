@@ -4,6 +4,7 @@ import { generateAnswerDenganUsage, streamAnswer, tulisUlangKueri, type ChatTurn
 import { embedTexts } from "./embeddings";
 import { decideAbstainKalibrasi, lexicalScore, pecahKalimat, perluTulisUlang, rrfFuseBanyak, skorMaxSim, varianKueri, varianSinonim } from "./retrieval";
 import { bobotDariEnv, cakupanToken, pilihRerank } from "./rerank";
+import { skorCE, urutkanCE } from "./rerank-ce";
 
 export interface Citation {
   label: number;
@@ -352,12 +353,26 @@ async function searchLocal(question: string): Promise<SearchResult> {
         pra.sort((a, b) => b.skor - a.skor);
       }
     }
+    // Tahap 2a: reranker cross-encoder. Menilai pasangan (pertanyaan, chunk)
+    // secara langsung — literatur menempatkan ini sebagai pengali terbesar
+    // setelah retrieval diperbaiki. Bila aktif, ia menggantikan skor heuristik.
+    let pakaiCE = false;
+    if (config.ragRerankerCE && pra.length > 0) {
+      const calon = pra.slice(0, config.ragCeKandidat);
+      const teksCalon = calon.map((x) => String(x.r.content).slice(0, 1600));
+      const skor = await skorCE(question, teksCalon);
+      pra = [...urutkanCE(calon, skor), ...pra.slice(config.ragCeKandidat)];
+      pakaiCE = true;
+    }
+
     // Tahap 1b: peringkat dokumen → hanya chunk dari dokumen teratas yang dilanjutkan.
     if (config.ragDocLevel && pra.length > 0) {
       pra = saringDokumenTeratas(pra, config.ragDokTeratas);
     }
 
-    if (config.ragRerank) {
+    if (pakaiCE) {
+      rows = pra.slice(0, config.vectorK).map((x) => x.r);
+    } else if (config.ragRerank) {
       rows = pilihRerank(
         pra.map((x) => ({
           ...x.r,

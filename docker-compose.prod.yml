@@ -46,6 +46,8 @@ services:
       DATA_DIR: /data
     volumes:
       - appdata:/data
+      # Model reranker cross-encoder (diunduh di host, read-only di container).
+      - ./models:/models:ro
     depends_on:
       db:
         condition: service_healthy

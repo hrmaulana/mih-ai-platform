@@ -49,6 +49,13 @@ export const config = {
   // menurunkan recall keseluruhan. Kode dipertahankan sebagai opsi eksperimen.
   ragDocLevel: (process.env.RAG_DOC_LEVEL ?? "false") === "true",
   ragDokTeratas: Number(process.env.RAG_DOK_TERATAS ?? 6),
+  // Reranker cross-encoder lokal (bge-reranker-base ONNX). Default mati sampai
+  // diukur dengan bench 194 kasus + harness e2e.
+  ragRerankerCE: (process.env.RAG_RERANKER_CE ?? "false") === "true",
+  ragCeModelPath: process.env.RAG_CE_MODEL_PATH ?? "/models/bge-reranker-base",
+  ragCeDtype: process.env.RAG_CE_DTYPE ?? "q8",
+  ragCeKandidat: Number(process.env.RAG_CE_KANDIDAT ?? 24),
+  ragCeMaxTokens: Number(process.env.RAG_CE_MAX_TOKENS ?? 384),
   // Ekspansi multi-kueri: kueri asli + varian kata kunci (naikkan recall).
   ragVarian: (process.env.RAG_VARIAN ?? "true") !== "false",
   // Penjaga deterministik: skor kemiripan terbaik di bawah ambang ini -> paksa menolak.
