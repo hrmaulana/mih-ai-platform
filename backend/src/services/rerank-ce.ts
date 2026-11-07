@@ -30,18 +30,19 @@ export async function skorCE(kueri: string, teks: string[]): Promise<number[]> {
   if (teks.length === 0) return [];
   if (!cePromise) cePromise = muatCE();
   const { tok, model } = await cePromise;
+  // Satu forward pass untuk semua pasangan. Versi satu-per-satu butuh ~24 detik
+  // per pertanyaan (24 kandidat) — terlalu lambat untuk dipakai.
+  const input = await tok(Array(teks.length).fill(kueri), {
+    text_pair: teks,
+    padding: true,
+    truncation: true,
+    max_length: config.ragCeMaxTokens,
+  });
+  const res: any = await model(input);
+  const data: ArrayLike<number> = res?.logits?.data ?? [];
+  const dimensi = teks.length > 0 ? Math.max(1, Math.floor(data.length / teks.length)) : 1;
   const skor: number[] = [];
-  for (const t of teks) {
-    const input = await tok(kueri, {
-      text_pair: t,
-      padding: true,
-      truncation: true,
-      max_length: config.ragCeMaxTokens,
-    });
-    const res: any = await model(input);
-    const logit = Number(res?.logits?.data?.[0] ?? 0);
-    skor.push(sigmoid(logit));
-  }
+  for (let i = 0; i < teks.length; i++) skor.push(sigmoid(Number(data[i * dimensi] ?? 0)));
   return skor;
 }
 
