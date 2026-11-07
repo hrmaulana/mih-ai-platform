@@ -488,6 +488,8 @@ export interface HasilAsk {
   tokenIn?: number | null;
   tokenOut?: number | null;
   menolak?: boolean;
+  /** Konteks yang benar-benar dikirim ke model — dipakai penilai (LLM-judge). */
+  context?: string;
 }
 
 export async function ask(
@@ -496,7 +498,7 @@ export async function ask(
 ): Promise<HasilAsk> {
   const hasil = await search(question, history);
   if (harusMenolak(hasil)) {
-    return { answer: JAWABAN_TIDAK_DITEMUKAN, citations: [], menolak: true };
+    return { answer: JAWABAN_TIDAK_DITEMUKAN, citations: [], menolak: true, context: hasil.context };
   }
   const { labeled, context, isComparison } = hasil;
   const jawab = await generateAnswerDenganUsage(question, context, history, isComparison);
@@ -525,6 +527,7 @@ export async function ask(
     tokenIn: jawab.tokenIn,
     tokenOut: jawab.tokenOut,
     menolak: teks === JAWABAN_TIDAK_DITEMUKAN,
+    context,
   };
 }
 

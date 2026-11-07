@@ -18,6 +18,7 @@
 import { pool } from "../src/db";
 import { config } from "../src/config";
 import { ask } from "../src/services/rag";
+import { nilaiDenganJuri } from "../src/lib/judge";
 
 const argv = process.argv.slice(2);
 const ambil = (nama: string, bawaan: string) => {
@@ -26,6 +27,7 @@ const ambil = (nama: string, bawaan: string) => {
 };
 
 const batas = Number(ambil("--batas", "100"));
+const pakaiJuri = argv.includes("--juri");
 
 export function normalisasi(t: string): string {
   return t
@@ -72,6 +74,8 @@ async function main() {
   const detik: number[] = [];
   let sitasiBenar = 0;
   let menjawab = 0;
+  const juriJumlah = { faithfulness: 0, relevancy: 0, recall: 0 };
+  let juriKasus = 0;
 
   for (let i = 0; i < kasus.length; i++) {
     const k = kasus[i];
@@ -88,6 +92,15 @@ async function main() {
     const putusan = nilaiKasus(hasil.answer ?? "", Boolean(hasil.menolak), dokSitasi, k.fakta, k.dokumen_id);
     hitung[putusan] = (hitung[putusan] ?? 0) + 1;
     if (!hasil.menolak) menjawab++;
+    if (pakaiJuri) {
+      const skor = await nilaiDenganJuri(k.pertanyaan, k.fakta, hasil.context ?? "", hasil.answer ?? "");
+      if (skor) {
+        juriJumlah.faithfulness += skor.faithfulness;
+        juriJumlah.relevancy += skor.relevancy;
+        juriJumlah.recall += skor.recall;
+        juriKasus++;
+      }
+    }
     if (dokSitasi.some((d: number) => d === Number(k.dokumen_id))) sitasiBenar++;
     if ((i + 1) % 10 === 0) console.log(`  ${i + 1}/${kasus.length}…`);
   }
@@ -110,6 +123,14 @@ async function main() {
     latensi_p50: p(0.5),
     latensi_p95: p(0.95),
     menjawab,
+    ...(juriKasus > 0
+      ? {
+          juri_kasus: juriKasus,
+          juri_faithfulness: Number((juriJumlah.faithfulness / juriKasus).toFixed(3)),
+          juri_relevancy: Number((juriJumlah.relevancy / juriKasus).toFixed(3)),
+          juri_recall: Number((juriJumlah.recall / juriKasus).toFixed(3)),
+        }
+      : {}),
   };
 
   console.log("\n=== HASIL ===");
