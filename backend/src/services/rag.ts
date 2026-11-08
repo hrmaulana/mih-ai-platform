@@ -5,6 +5,7 @@ import { embedTexts } from "./embeddings";
 import { decideAbstainKalibrasi, lexicalScore, pecahKalimat, perluTulisUlang, rrfFuseBanyak, skorMaxSim, varianKueri, varianSinonim } from "./retrieval";
 import { bobotDariEnv, cakupanToken, pilihRerank } from "./rerank";
 import { skorCE, urutkanCE } from "./rerank-ce";
+import { verifikasiKlaim } from "../lib/verifikasi";
 import { embedM3 } from "./embed-m3";
 
 export interface Citation {
@@ -507,6 +508,7 @@ export interface HasilAsk {
   tokenIn?: number | null;
   tokenOut?: number | null;
   menolak?: boolean;
+  verifikasiSkor?: number | null;
   /** Konteks yang benar-benar dikirim ke model — dipakai penilai (LLM-judge). */
   context?: string;
 }
@@ -535,10 +537,22 @@ export async function ask(
     }
   }
 
-  // Catatan: penjaga angka (verifikasi angka jawaban vs chunk tersitasi) DICABUT.
-  // Uji 4 Nov: T11 tetap lolos sementara J5 (pertanyaan sah) ikut ditolak —
-  // aturan heuristik ini tidak andal. Perbaikan yang benar perlu verifikasi
-  // berbasis LLM (klaim vs kutipan) atau perbaikan retrieval, bukan ambang.
+  let skorVerif: number | null = null;
+  if (config.ragVerifikasi && teks !== JAWABAN_TIDAK_DITEMUKAN) {
+    const v = await verifikasiKlaim(teks, context);
+    if (v) {
+      skorVerif = v.skor;
+      if (v.skor < config.ragVerifAmbang) {
+        const perbaikan = await generateAnswerDenganUsage(
+          question, context, history, isComparison, true,
+        );
+        if (perbaikan.text && perbaikan.text !== JAWABAN_TIDAK_DITEMUKAN) {
+          teks = perbaikan.text;
+          sitasi = buildCitations(labeled, teks);
+        }
+      }
+    }
+  }
   return {
     answer: teks,
     citations: sitasi,
@@ -546,6 +560,7 @@ export async function ask(
     tokenIn: jawab.tokenIn,
     tokenOut: jawab.tokenOut,
     menolak: teks === JAWABAN_TIDAK_DITEMUKAN,
+    verifikasiSkor: skorVerif,
     context,
   };
 }
