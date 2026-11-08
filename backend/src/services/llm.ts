@@ -52,8 +52,10 @@ export const ANALITIK_ADDENDUM = [
 
 export function selectSystemPrompt(isComparison: boolean, variant: number = config.promptVariant): string {
   const dasar = isComparison ? COMPARISON_SYSTEM_PROMPT : SYSTEM_PROMPT;
-  if (variant >= 3) return `${dasar}\n${ANALITIK_ADDENDUM}`;
-  return variant >= 2 ? `${dasar}\n${OVERREFUSAL_ADDENDUM}` : dasar;
+  const ketat = (process.env.RAG_INSTRUKSI_KETAT ?? "").trim();
+  const ekstra = ketat ? `\n${ketat}` : "";
+  if (variant >= 3) return `${dasar}\n${ANALITIK_ADDENDUM}${ekstra}`;
+  return variant >= 2 ? `${dasar}\n${OVERREFUSAL_ADDENDUM}${ekstra}` : `${dasar}${ekstra}`;
 }
 
 export interface JawabanDenganUsage {
