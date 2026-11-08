@@ -62,7 +62,7 @@ export async function nilaiDenganJuri(
     `KONTEKS:\n${konteks.slice(0, 6000)}\n\nJAWABAN:\n${jawaban.slice(0, 2000)}`;
   try {
     const resp = await client.chat.completions.create({
-      model: config.openaiModel,
+      model: config.judgeModel,
       temperature: 0,
       messages: [
         { role: "system", content: sistem },

@@ -7,6 +7,9 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL ?? "postgres://mih:mih@localhost:5432/mih",
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
   openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+  // Model penilai (LLM-judge) DIPISAH agar A/B model penjawab tetap adil:
+  // penggaris tidak boleh ikut berubah saat model yang diuji diganti.
+  judgeModel: process.env.JUDGE_MODEL ?? "gpt-4o-mini",
   fallbackApiKey: process.env.DEEPSEEK_API_KEY ?? "",
   fallbackModel: process.env.FALLBACK_MODEL ?? "deepseek-chat",
   fallbackBaseUrl: process.env.FALLBACK_BASE_URL ?? "https://api.deepseek.com/v1",
