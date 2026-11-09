@@ -719,7 +719,14 @@ export const portalMenus: PortalMenuItem[] = [
   {
     name: "Layanan",
     status: "public",
-    children: services.map((s) => ({ name: s.name, path: "/layanan/" + s.slug })),
+    children: [
+      { name: "Dasar Hukum", path: "/layanan/dasar-hukum" },
+      { name: "Jenis Layanan", path: "/layanan/jenis-layanan" },
+      { name: "Teknis Permohonan Layanan", path: "/layanan/teknis" },
+      { name: "Survey Kepuasan Masyarakat", path: "/layanan/survey" },
+      { name: "Jenis Layanan Lainnya", path: "/layanan/layanan-lainnya" },
+      { name: "Dokumentasi Pelaksanaan Layanan", path: "/layanan/dokumentasi" },
+    ],
   },
   {
     name: "Dashboard",

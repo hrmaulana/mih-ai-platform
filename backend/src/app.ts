@@ -11,6 +11,7 @@ import skillsRoutes from "./routes/skills";
 import earlyWarningRoutes from "./routes/early-warning";
 import pantauBeritaRoutes from "./routes/pantau-berita";
 import feedbackRoutes from "./routes/feedback";
+import layananRoutes, { layananAdminRouter } from "./routes/layanan";
 import type { LoginRateLimitOptions } from "./lib/loginRateLimit";
 
 export function createApp(opts: { loginRateLimit?: LoginRateLimitOptions } = {}) {
@@ -26,8 +27,10 @@ export function createApp(opts: { loginRateLimit?: LoginRateLimitOptions } = {})
   app.use("/api", earlyWarningRoutes);
   app.use("/api", pantauBeritaRoutes);
   app.use("/api", feedbackRoutes);
+  app.use("/api", layananRoutes);
   app.use("/api/admin", adminRoutes);
   app.use("/api/admin", metricsRoutes);
+  app.use("/api/admin", layananAdminRouter);
   app.get("/health", (_req, res) => res.json({ ok: true }));
   // Express 5 meneruskan error dari handler async ke middleware berikut
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
