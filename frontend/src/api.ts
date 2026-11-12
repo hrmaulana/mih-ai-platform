@@ -99,6 +99,23 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export type LayananJenis =
+  | "dasar_hukum" | "jenis_layanan" | "teknis"
+  | "survey" | "layanan_lainnya" | "dokumentasi";
+
+export interface LayananItem {
+  id: number;
+  jenis: LayananJenis;
+  slug: string;
+  judul: string;
+  urutan: number;
+  akses: "publik" | "login";
+  is_published: boolean;
+  payload: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
 export const api = {
   metricsDaily: (dari: string, sampai: string) =>
     req<any>(`/api/admin/metrics/daily?dari=${dari}&sampai=${sampai}`),
@@ -158,6 +175,15 @@ export const api = {
   },
   retryDocument: (id: number) =>
     req<{ id: number; filename: string; status: string }>(`/api/admin/documents/${id}/retry`, { method: "POST" }),
+  layanan: (jenis?: LayananJenis) =>
+    req<LayananItem[]>(`/api/layanan${jenis ? `?jenis=${jenis}` : ""}`),
+  adminLayanan: () => req<LayananItem[]>("/api/admin/layanan"),
+  createLayanan: (c: Partial<LayananItem>) =>
+    req<LayananItem>("/api/admin/layanan", { method: "POST", body: JSON.stringify(c) }),
+  updateLayanan: (id: number, c: Partial<LayananItem>) =>
+    req<LayananItem>(`/api/admin/layanan/${id}`, { method: "PUT", body: JSON.stringify(c) }),
+  deleteLayanan: (id: number) =>
+    req<{ ok: boolean }>(`/api/admin/layanan/${id}`, { method: "DELETE" }),
   content: () => req<ContentItem[]>("/api/content"),
   contentBySlug: (slug: string) => req<ContentItem>(`/api/content/${slug}`),
   adminContent: () => req<ContentItem[]>("/api/admin/content"),

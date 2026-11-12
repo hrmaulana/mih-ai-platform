@@ -25,7 +25,7 @@ import {
   PortalPublication,
   PortalPublicationDetail,
 } from "./pages/portal/PortalPublication";
-import PortalService from "./pages/portal/PortalService";
+import PortalLayanan from "./pages/portal/PortalLayanan";
 import PortalDashboard from "./pages/portal/PortalDashboard";
 import EarlyWarning from "./pages/portal/EarlyWarning";
 import RenstraPmp from "./pages/portal/RenstraPmp";
@@ -54,9 +54,8 @@ function LeaderRoute() {
   const { slug } = useParams();
   return <PortalUnit slug={slug!} mode="leader" />;
 }
-function ServiceRoute() {
-  const { slug } = useParams();
-  return <PortalService slug={slug!} />;
+function LayananRoute() {
+  return <PortalLayanan />;
 }
 function DashboardRoute() {
   const { slug } = useParams();
@@ -249,7 +248,8 @@ const portalRoutes = [
   <Route key="profil-kedeputian" path="/profil/kedeputian" element={<PortalDeputy />} />,
   <Route key="profil-unit" path="/profil/unit/:slug" element={<UnitRoute />} />,
   <Route key="profil-pimpinan" path="/profil/pimpinan/:slug" element={<LeaderRoute />} />,
-  <Route key="layanan" path="/layanan/:slug" element={<ServiceRoute />} />,
+  <Route key="layanan-detail" path="/layanan/jenis-layanan/:slug" element={<LayananRoute />} />,
+  <Route key="layanan" path="/layanan/:jenis" element={<LayananRoute />} />,
   <Route key="early-warning" path="/dashboard/early-warning" element={<EarlyWarning />} />,
   <Route key="renstra-pmp" path="/renstra-pmp" element={<RenstraPmp />} />,
   <Route

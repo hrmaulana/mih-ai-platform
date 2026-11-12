@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { api, type ContentItem, type Token, type User } from "../api";
 import { RichTextEditor } from "../components/RichTextEditor";
+import LayananAdminPanel from "../components/LayananAdminPanel";
 import {
   Button,
   Card,
@@ -259,6 +260,9 @@ export default function Admin() {
 
       <div className="space-y-8">
         {error && <ErrorBanner>{error}</ErrorBanner>}
+
+        {/* Kelola layanan publik (menu Layanan di portal) */}
+        <LayananAdminPanel />
 
         {/* Kelola konten publik */}
         <Card interactive={false} className="p-5">
