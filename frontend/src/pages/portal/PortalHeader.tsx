@@ -70,6 +70,12 @@ export default function PortalHeader() {
 
           <nav className="desktop-nav">
             {visibleMenus.map((menu) => renderMenuItem(menu))}
+            {/* CMS: khusus admin, ditampilkan di home (terpisah dari menu internal) */}
+            {user?.is_admin && (
+              <Link to="/admin" className="nav-link">
+                CMS
+              </Link>
+            )}
             {showAgenAI && (
               <Link to={'/playground'} className="nav-link">
                 Agen AI
@@ -115,6 +121,11 @@ export default function PortalHeader() {
           {visibleMenus.map((menu) =>
             renderMobileItem(menu, closeMobile, openSubmenu, setOpenSubmenu),
           )}
+          {user?.is_admin && (
+                      <Link to="/admin" className="nav-link" onClick={closeMobile}>
+                        CMS
+                      </Link>
+                      )}
           {showAgenAI && (
                       <Link to="/playground" className="nav-link" onClick={closeMobile}>
                         Agen AI

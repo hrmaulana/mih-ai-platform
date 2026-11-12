@@ -114,11 +114,7 @@ function SiteHeader({ user, onLogout }: { user: User; onLogout: () => void }) {
               <Link to="/documents/relasi" className="block px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-900" onClick={closeMobile}>Relasi Dokumen</Link>
             </div>
           </div>
-          {user.is_admin && (
-            <NavLink to="/admin" className={navClass} onClick={closeMobile}>
-              Admin
-            </NavLink>
-          )}
+          {/* "Admin"/CMS sudah dipindah ke header portal (home), bukan di grup internal */}
             {user.is_admin && (
               <NavLink to="/admin/metrics" className={navClass} onClick={closeMobile}>
                 Log Harian
@@ -152,7 +148,7 @@ function SiteHeader({ user, onLogout }: { user: User; onLogout: () => void }) {
           <Link to="/playground" className="block border-b border-slate-100 px-4 py-3 font-bold text-slate-800" onClick={closeMobile}>Playground</Link>
           <Link to="/documents" className="block border-b border-slate-100 px-4 py-3 font-bold text-slate-800" onClick={closeMobile}>Daftar Dokumen</Link>
           <Link to="/documents/relasi" className="block border-b border-slate-100 px-4 py-3 font-bold text-slate-800" onClick={closeMobile}>Relasi Dokumen</Link>
-          {user.is_admin && <Link to="/admin" className="block border-b border-slate-100 px-4 py-3 font-bold text-slate-800" onClick={closeMobile}>Admin</Link>}
+
           {dashboards.map((d) => (
             <Link key={d.slug} to={`/dashboard/${d.slug}`} className="block border-b border-slate-100 px-4 py-3 font-bold text-slate-800" onClick={closeMobile}>{d.title}</Link>
           ))}
