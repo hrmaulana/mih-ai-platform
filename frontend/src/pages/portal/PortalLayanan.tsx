@@ -99,6 +99,29 @@ export default function PortalLayanan() {
       .finally(() => setMemuat(false));
   }, [jenis, user?.id]);
 
+  // Setelah konten berganti (dari sidebar), pulihkan posisi scroll supaya
+  // halaman tidak terasa "melompat" — isi kanan berganti di tempat.
+  // `slug` jadi dependency karena berpindah antar-layanan TIDAK mengubah `jenis`
+  // (tidak ada fetch ulang), hanya isi kanan yang berganti.
+  useEffect(() => {
+    if (memuat) return;
+    let tersimpan: string | null = null;
+    try {
+      tersimpan = sessionStorage.getItem("scrollLayanan");
+      if (tersimpan !== null) sessionStorage.removeItem("scrollLayanan");
+    } catch {
+      /* ignore */
+    }
+    if (tersimpan === null) return;
+    const y = Number(tersimpan);
+    // tunda satu frame supaya layout konten baru sudah selesai
+    const id = window.setTimeout(
+      () => window.scrollTo({ top: y, left: 0, behavior: "auto" }),
+      0,
+    );
+    return () => window.clearTimeout(id);
+  }, [memuat, slug]);
+
   if (!jenis) {
     return (
       <section className="section">
@@ -123,11 +146,13 @@ export default function PortalLayanan() {
     </section>
   );
 
+  // minHeight menjaga tinggi halaman tetap saat konten sedang dimuat, supaya
+  // posisi scroll tidak "melompat" ketika berpindah antar-layanan.
   if (memuat) {
     return (
       <>
         {kepala}
-        <div className="container" style={{ paddingBottom: 80 }}>
+        <div className="container" style={{ paddingBottom: 80, minHeight: "70vh" }}>
           <p className="muted">Memuat…</p>
         </div>
       </>
@@ -137,7 +162,7 @@ export default function PortalLayanan() {
     return (
       <>
         {kepala}
-        <div className="container" style={{ paddingBottom: 80 }}>
+        <div className="container" style={{ paddingBottom: 80, minHeight: "70vh" }}>
           <p className="muted">Gagal memuat konten: {galat}</p>
         </div>
       </>
@@ -158,6 +183,14 @@ export default function PortalLayanan() {
                 key={s.slug}
                 className={`sidebar-link${s.slug === slug || (!slug && s === publik[0]) ? " active" : ""}`}
                 to={`/layanan/jenis-layanan/${s.slug}`}
+                onClick={() => {
+                  // simpan posisi scroll agar bisa dipulihkan setelah konten berganti
+                  try {
+                    sessionStorage.setItem("scrollLayanan", String(window.scrollY));
+                  } catch {
+                    /* ignore */
+                  }
+                }}
               >
                 {s.judul}
               </Link>

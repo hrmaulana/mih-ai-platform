@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   Routes,
   Route,
@@ -6,6 +6,7 @@ import {
   Navigate,
   Link,
   Outlet,
+  useLocation,
   useParams,
 } from "react-router-dom";
 import { api, type User } from "./api";
@@ -248,7 +249,9 @@ const portalRoutes = [
   <Route key="profil-kedeputian" path="/profil/kedeputian" element={<PortalDeputy />} />,
   <Route key="profil-unit" path="/profil/unit/:slug" element={<UnitRoute />} />,
   <Route key="profil-pimpinan" path="/profil/pimpinan/:slug" element={<LeaderRoute />} />,
-  <Route key="layanan-detail" path="/layanan/jenis-layanan/:slug" element={<LayananRoute />} />,
+  // `:jenis` harus berupa param (bukan literal "jenis-layanan") supaya
+  // PortalLayanan bisa membaca useParams().jenis.
+  <Route key="layanan-detail" path="/layanan/:jenis/:slug" element={<LayananRoute />} />,
   <Route key="layanan" path="/layanan/:jenis" element={<LayananRoute />} />,
   <Route key="early-warning" path="/dashboard/early-warning" element={<EarlyWarning />} />,
   <Route key="renstra-pmp" path="/renstra-pmp" element={<RenstraPmp />} />,
@@ -263,6 +266,32 @@ const portalRoutes = [
   />,
   <Route key="dashboard-slug" path="/dashboard/:slug" element={<DashboardRoute />} />,
 ];
+
+/**
+ * Scroll ke atas setiap pindah halaman.
+ *
+ * Pengecualian: perpindahan ANTAR-LAYANAN di halaman Layanan
+ * (/layanan/jenis-layanan/<slug>) — di situ sidebar kiri tetap dan isi kanan
+ * berganti di tempat, jadi halaman tidak boleh melompat ke atas.
+ */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  const sebelumnya = useRef(pathname);
+
+  useEffect(() => {
+    // cocok untuk halaman daftar (/layanan/jenis-layanan) maupun detail (/…/<slug>)
+    const diJenisLayanan = (p: string) =>
+      p === "/layanan/jenis-layanan" || p.startsWith("/layanan/jenis-layanan/");
+    const gantiIsiSamping = diJenisLayanan(sebelumnya.current) && diJenisLayanan(pathname);
+
+    if (!gantiIsiSamping) {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
+    sebelumnya.current = pathname;
+  }, [pathname]);
+
+  return null;
+}
 
 export default function App() {
   /* ===Development By Pass Login === 
@@ -316,13 +345,16 @@ export default function App() {
   /* ===== Guest: landing publik + login ===== */
   if (!user) {
     return (
-      <Routes>
-        <Route element={<PortalLayout />}>
-          {portalRoutes}
-        </Route>
-        <Route path="/login" element={<Login onLogin={setUser} />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <>
+        <ScrollToTop />
+        <Routes>
+          <Route element={<PortalLayout />}>
+            {portalRoutes}
+          </Route>
+          <Route path="/login" element={<Login onLogin={setUser} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </>
     );
   }
 
@@ -330,7 +362,9 @@ export default function App() {
   const handleLogout = () => api.logout().finally(() => setUser(null));
 
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       {/* Landing page tetap tampil saat login — menu/tautan private ikut muncul.
           Dashboard route di sini agar halaman dashboard memakai chrome portal. */}
       <Route element={<PortalLayout user={user} onLogout={handleLogout} />}>
@@ -353,6 +387,7 @@ export default function App() {
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }
