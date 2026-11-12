@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { api, type ContentItem, type Token, type User } from "../api";
 import { RichTextEditor } from "../components/RichTextEditor";
+import { slugify } from "../lib/slug";
 import LayananAdminPanel from "../components/LayananAdminPanel";
 import {
   Button,
@@ -85,6 +86,8 @@ export default function Admin() {
   const [showContentForm, setShowContentForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [contentForm, setContentForm] = useState<ContentForm>(EMPTY_CONTENT_FORM);
+  // true bila admin sudah mengubah slug sendiri -> jangan ditimpa otomatis
+  const [slugManual, setSlugManual] = useState(false);
 
   async function load() {
     try {
@@ -109,11 +112,14 @@ export default function Admin() {
   function openCreate() {
     setEditingId(null);
     setContentForm(EMPTY_CONTENT_FORM);
+    setSlugManual(false);
     setShowContentForm(true);
   }
 
   function openEdit(c: ContentItem) {
     setEditingId(c.id);
+    // konten lama sudah punya slug -> jangan ditimpa otomatis saat judul diubah
+    setSlugManual(true);
     setContentForm({
       type: c.type,
       slug: c.slug,
@@ -286,13 +292,35 @@ export default function Admin() {
                             <FOption value="publication">Publikasi</FOption>
                           </FDropdown>
                         </FField>
-                        <FField label="Slug" required>
-                          <FInput placeholder="contoh: berita-triwulan-iii" value={contentForm.slug}
-                            onChange={(_, d) => setContentForm({ ...contentForm, slug: d.value })} />
-                        </FField>
                         <FField label="Judul" required>
                           <FInput placeholder="Judul" value={contentForm.title}
-                            onChange={(_, d) => setContentForm({ ...contentForm, title: d.value })} />
+                            onChange={(_, d) => {
+                              const judul = d.value;
+                              setContentForm({
+                                ...contentForm,
+                                title: judul,
+                                // slug dibuat otomatis dari judul, kecuali sudah diubah manual
+                                slug: slugManual ? contentForm.slug : slugify(judul),
+                              });
+                            }} />
+                        </FField>
+                        <FField
+                          label="Slug"
+                          required
+                          hint="Terisi otomatis dari judul — bisa diubah manual bila perlu."
+                        >
+                          <FInput placeholder="contoh: berita-triwulan-iii" value={contentForm.slug}
+                            onChange={(_, d) => {
+                              const v = d.value;
+                              if (v.trim() === "") {
+                                // dikosongkan -> kembali ke mode otomatis
+                                setSlugManual(false);
+                                setContentForm({ ...contentForm, slug: slugify(contentForm.title) });
+                              } else {
+                                setSlugManual(true);
+                                setContentForm({ ...contentForm, slug: v });
+                              }
+                            }} />
                         </FField>
                         <FField label="Kategori">
                           <FInput placeholder="Berita, Pengumuman, ..." value={contentForm.category}
