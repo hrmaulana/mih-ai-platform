@@ -38,6 +38,7 @@ interface ContentForm {
   category: string;
   author: string;
   date: string;
+  published_date: string;
   contentText: string;
   document_url: string;
   document_name: string;
@@ -54,6 +55,8 @@ const EMPTY_CONTENT_FORM: ContentForm = {
   category: "",
   author: "",
   date: "",
+  // Tanggal terbit (dipakai untuk urutan & tampilan). Default: hari ini.
+  published_date: new Date().toISOString().slice(0, 10),
   contentText: "",
   document_url: "",
   document_name: "",
@@ -120,6 +123,7 @@ export default function Admin() {
       author: c.author,
       date: c.date,
       contentText: c.content ?? "",
+      published_date: c.published_date ?? "",
       document_url: c.document_url,
       document_name: c.document_name,
       galleryText: (c.gallery ?? []).join("\n"),
@@ -140,6 +144,7 @@ export default function Admin() {
         image: contentForm.image,
         category: contentForm.category,
         author: contentForm.author,
+        published_date: contentForm.published_date || null,
         date: contentForm.date,
         content: contentForm.contentText,
         document_url: contentForm.document_url,
@@ -288,6 +293,10 @@ export default function Admin() {
                         <FField label="Kategori">
                           <FInput placeholder="Berita, Pengumuman, ..." value={contentForm.category}
                             onChange={(_, d) => setContentForm({ ...contentForm, category: d.value })} />
+                        </FField>
+                        <FField label="Tanggal Terbit" hint="Dipakai untuk urutan berita/publikasi di portal">
+                          <FInput type="date" value={contentForm.published_date}
+                            onChange={(_, d) => setContentForm({ ...contentForm, published_date: d.value })} />
                         </FField>
                         <FField label="Ringkasan" className="sm:col-span-2">
                           <FTextarea rows={2} placeholder="Ringkasan singkat (excerpt carousel)" value={contentForm.excerpt}

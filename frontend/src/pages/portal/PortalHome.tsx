@@ -5,6 +5,7 @@ import { usePortalAuth } from "./PortalLayout";
 import { PortalEmbedSection } from "./portalPages";
 import { usePortalContent } from "./usePortalContent";
 import EarlyWarningWidget from "../../components/portal/EarlyWarningWidget";
+import { tanggalTerbit } from "../../lib/tanggal";
 
 /*
  * Beranda publik — reproduksi `renderHomePage()` dari PMP Portal.html.
@@ -308,7 +309,7 @@ export default function PortalHome() {
                       color: "var(--slate-500)",
                     }}
                   >
-                    {pub.date}
+                    {tanggalTerbit(pub)}
                   </time>
                 </div>
               </article>

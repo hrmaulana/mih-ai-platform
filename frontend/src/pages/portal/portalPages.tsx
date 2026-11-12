@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { tanggalTerbit } from "../../lib/tanggal";
 
 /*
  * portalPages.tsx — potongan halaman portal yang dipakai bersama oleh
@@ -47,7 +48,7 @@ export function PortalListSection({
               />
               <div className="card-body">
                 <p className="meta">
-                  {item.date} - {item.category}
+                  {tanggalTerbit(item)} - {item.category}
                 </p>
                 <h2 style={{ fontSize: "1.28rem", color: "var(--slate-900)" }}>{item.title}</h2>
                 <p className="muted">{item.excerpt}</p>
@@ -149,7 +150,7 @@ export function PortalRelatedGrid({
               />
               <div className="card-body">
                 <p className="meta">
-                  {n.date} • {n.category}
+                  {tanggalTerbit(n)} • {n.category}
                 </p>
                 <h3 style={{ marginTop: 8, color: "var(--slate-900)" }}>{n.title}</h3>
                 <p className="muted">{n.excerpt}</p>

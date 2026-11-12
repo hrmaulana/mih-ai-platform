@@ -4,8 +4,8 @@ import { pool } from "../db";
 const router = Router();
 
 const PUBLIC_COLS = `
-  id, type, slug, title, excerpt, image, category, author, date, content,
-  document_url, document_name, gallery, created_at, updated_at
+  id, type, slug, title, excerpt, image, category, author, date, published_date,
+  content, document_url, document_name, gallery, created_at, updated_at
 `;
 
 // Konten publik landing (berita & publikasi) — hanya yang published.
@@ -13,7 +13,7 @@ router.get("/content", async (_req, res) => {
   const { rows } = await pool.query(
     `SELECT ${PUBLIC_COLS} FROM content
       WHERE is_published = true
-      ORDER BY date DESC, id DESC`
+      ORDER BY published_date DESC NULLS LAST, id DESC`
   );
   res.json(rows);
 });

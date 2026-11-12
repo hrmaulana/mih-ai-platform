@@ -5,6 +5,7 @@ import {
   PortalListSection,
   PortalNotFound,
 } from "./portalPages";
+import { tanggalTerbit } from "../../lib/tanggal";
 
 /*
  * Daftar Publikasi + Detail Publikasi — reproduksi `renderPublicationListPage()`
@@ -43,7 +44,7 @@ export function PortalPublicationDetail({ slug }: { slug: string }) {
       <PortalArticleHero
         category={item.category}
         title={item.title}
-        meta={`${item.date} • Oleh ${item.author}`}
+        meta={`${tanggalTerbit(item)} • Oleh ${item.author}`}
         sectionStyle={{ background: "linear-gradient(135deg, #0f172a, #1e293b)" }}
         pillStyle={{ background: "var(--amber-500)" }}
       />

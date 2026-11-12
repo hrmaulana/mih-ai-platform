@@ -195,8 +195,8 @@ function toArray(v: unknown): string[] {
 }
 
 const ADMIN_CONTENT_COLS = `
-  id, type, slug, title, excerpt, image, category, author, date, content,
-  document_url, document_name, gallery, is_published, created_by, created_at, updated_at
+  id, type, slug, title, excerpt, image, category, author, date, published_date,
+  content, document_url, document_name, gallery, is_published, created_by, created_at, updated_at
 `;
 
 // Semua konten (termasuk unpublished) — untuk tabel admin.
@@ -228,9 +228,9 @@ router.post("/content", requireAdmin, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `INSERT INTO content
-         (type, slug, title, excerpt, image, category, author, date, content,
+         (type, slug, title, excerpt, image, category, author, date, published_date, content,
           document_url, document_name, gallery, is_published, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
        RETURNING ${ADMIN_CONTENT_COLS}`,
       [
         type,
@@ -241,6 +241,8 @@ router.post("/content", requireAdmin, async (req, res) => {
         String(body.category ?? ""),
         author,
         String(body.date ?? today),
+        // Tanggal terbit: dipakai untuk urutan & tampilan. Bila kosong, pakai tanggal hari ini.
+        body.published_date ? String(body.published_date).slice(0, 10) : today,
         String(body.content ?? ""),
         String(body.document_url ?? ""),
         String(body.document_name ?? ""),
@@ -274,6 +276,10 @@ router.put("/content/:id", requireAdmin, async (req, res) => {
     category: body.category !== undefined ? String(body.category) : prev.category,
     author: body.author !== undefined ? String(body.author) : prev.author,
     date: body.date !== undefined ? String(body.date) : prev.date,
+    published_date:
+      body.published_date !== undefined
+        ? (body.published_date ? String(body.published_date).slice(0, 10) : null)
+        : prev.published_date,
     content: body.content !== undefined ? String(body.content) : prev.content,
     document_url: body.document_url !== undefined ? String(body.document_url) : prev.document_url,
     document_name: body.document_name !== undefined ? String(body.document_name) : prev.document_name,
@@ -288,13 +294,13 @@ router.put("/content/:id", requireAdmin, async (req, res) => {
     const { rows } = await pool.query(
       `UPDATE content SET
          type=$1, slug=$2, title=$3, excerpt=$4, image=$5, category=$6, author=$7,
-         date=$8, content=$9, document_url=$10, document_name=$11, gallery=$12,
-         is_published=$13, updated_at=now()
-       WHERE id=$14 RETURNING ${ADMIN_CONTENT_COLS}`,
+         date=$8, published_date=$9, content=$10, document_url=$11, document_name=$12,
+         gallery=$13, is_published=$14, updated_at=now()
+       WHERE id=$15 RETURNING ${ADMIN_CONTENT_COLS}`,
       [
         patch.type, patch.slug, patch.title, patch.excerpt, patch.image, patch.category,
-        patch.author, patch.date, patch.content, patch.document_url, patch.document_name,
-        patch.gallery, patch.is_published, id,
+        patch.author, patch.date, patch.published_date, patch.content, patch.document_url,
+        patch.document_name, patch.gallery, patch.is_published, id,
       ]
     );
     res.json(rows[0]);

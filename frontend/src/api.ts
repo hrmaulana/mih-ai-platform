@@ -30,6 +30,7 @@ export interface ContentItem {
   category: string;
   author: string;
   date: string;
+  published_date: string | null;
   content: string;
   document_url: string;
   document_name: string;

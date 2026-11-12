@@ -8,6 +8,7 @@ import {
   PortalNotFound,
   PortalRelatedGrid,
 } from "./portalPages";
+import { tanggalTerbit } from "../../lib/tanggal";
 
 /*
  * Daftar Berita + Detail Berita — reproduksi `renderNewsListPage()` dan
@@ -54,7 +55,7 @@ export function PortalNewsDetail({ slug }: { slug: string }) {
       <PortalArticleHero
         category={item.category}
         title={item.title}
-        meta={`${item.date} • ${item.author}`}
+        meta={`${tanggalTerbit(item)} • ${item.author}`}
       />
       <section className="section" style={{ background: "white", paddingTop: 0 }}>
         <div className="container">
