@@ -339,7 +339,9 @@ export default function PortalLayanan() {
           <article className="card">
             <div className="card-body">
               <h2 className="layanan-judul">Laporan Survei</h2>
-              {internal.length > 0 ? (
+              {!user ? (
+                <KotakLogin pesan="Laporan survei hanya tampil untuk pengguna yang sudah login." />
+              ) : internal.length > 0 ? (
                 <table className="layanan-tabel">
                   <thead>
                     <tr>
@@ -367,7 +369,7 @@ export default function PortalLayanan() {
                   </tbody>
                 </table>
               ) : (
-                <KotakLogin pesan="Laporan survei hanya tampil untuk pengguna yang sudah login." />
+                <p className="muted">Belum ada laporan survei.</p>
               )}
             </div>
           </article>
@@ -432,7 +434,9 @@ export default function PortalLayanan() {
           <article className="card">
             <div className="card-body">
               <h2 className="layanan-judul">Laporan Penerimaan</h2>
-              {internal.length > 0 ? (
+              {!user ? (
+                <KotakLogin pesan="Laporan penerimaan mahasiswa & tamu dinas hanya tampil setelah login." />
+              ) : internal.length > 0 ? (
                 <table className="layanan-tabel">
                   <thead>
                     <tr>
@@ -460,7 +464,7 @@ export default function PortalLayanan() {
                   </tbody>
                 </table>
               ) : (
-                <KotakLogin pesan="Laporan penerimaan mahasiswa & tamu dinas hanya tampil setelah login." />
+                <p className="muted">Belum ada laporan penerimaan.</p>
               )}
             </div>
           </article>
