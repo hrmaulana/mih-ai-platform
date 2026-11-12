@@ -34,3 +34,4 @@ PMP Portal_files/
 .commandcode/
 *.tar.gz
 models/
+node_modules
