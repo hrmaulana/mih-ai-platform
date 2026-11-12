@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type LayananItem, type LayananJenis } from "../api";
 import { units } from "../data/portal";
+import { slugify } from "../lib/slug";
 import { Button, Card, ErrorBanner, Field, Input, Select } from "./ui";
 
 /*
@@ -99,6 +100,8 @@ export default function LayananAdminPanel() {
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  // true = slug diisi manual, jangan ditimpa otomatis dari judul
+  const [slugManual, setSlugManual] = useState(false);
   const [error, setError] = useState("");
   const [sukses, setSukses] = useState("");
 
@@ -118,6 +121,7 @@ export default function LayananAdminPanel() {
 
   function resetForm() {
     setEditingId(null);
+    setSlugManual(false);
     setForm({ ...EMPTY_FORM });
     setPayload({});
     setError("");
@@ -125,6 +129,8 @@ export default function LayananAdminPanel() {
 
   function mulaiUbah(item: LayananItem) {
     setEditingId(item.id);
+    // item lama sudah punya slug -> jangan ditimpa otomatis
+    setSlugManual(true);
     setForm({
       slug: item.slug,
       judul: item.judul,
@@ -358,14 +364,31 @@ export default function LayananAdminPanel() {
           <Field label="Judul">
             <Input
               value={form.judul}
-              onChange={(e) => setForm({ ...form, judul: e.target.value })}
+              onChange={(e) => {
+                const judul = e.target.value;
+                setForm({
+                  ...form,
+                  judul,
+                  slug: slugManual ? form.slug : slugify(judul),
+                });
+              }}
               required
             />
           </Field>
-          <Field label="Slug">
+          <Field label="Slug" hint="Terisi otomatis dari Judul — bisa diubah manual">
             <Input
               value={form.slug}
-              onChange={(e) => setForm({ ...form, slug: e.target.value })}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v.trim() === "") {
+                  // dikosongkan -> kembali ke mode otomatis
+                  setSlugManual(false);
+                  setForm({ ...form, slug: slugify(form.judul) });
+                } else {
+                  setSlugManual(true);
+                  setForm({ ...form, slug: v });
+                }
+              }}
               placeholder="huruf-kecil-dan-hubung"
               required
             />
